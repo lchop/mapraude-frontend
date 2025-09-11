@@ -1,0 +1,27 @@
+.card {
+  @apply bg-white rounded-lg shadow-md border border-gray-200;
+}
+
+.icon {
+  @apply w-4 h-4;
+}
+
+.status-planned {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.status-progress {
+  @apply bg-orange-100 text-orange-800;
+}
+
+.status-completed {
+  @apply bg-green-100 text-green-800;
+}
+
+.status-cancelled {
+  @apply bg-red-100 text-red-800;
+}
+
+.status-default {
+  @apply bg-gray-100 text-gray-800;
+}
