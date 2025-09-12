@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
 import { LoginRequest } from '../../../models/user.model';
 
@@ -23,8 +23,14 @@ export class LoginComponent {
 
   constructor(
     private authService: AuthService,
-    private router: Router
-  ) {}
+    private router: Router,
+    private route: ActivatedRoute
+  ) {
+    // Si déjà connecté, redirige vers le dashboard
+    if (this.authService.isLoggedIn()) {
+      this.router.navigate(['/dashboard']);
+    }
+  }
 
   onSubmit() {
     if (!this.credentials.email || !this.credentials.password) {
@@ -38,6 +44,8 @@ export class LoginComponent {
     this.authService.login(this.credentials).subscribe({
       next: (response) => {
         console.log('Connexion réussie:', response);
+
+        // Redirige vers le dashboard après connexion réussie
         this.router.navigate(['/dashboard']);
       },
       error: (error) => {
