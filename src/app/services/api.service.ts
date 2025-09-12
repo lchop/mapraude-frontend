@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Association } from '../models/association.model';
 import { MaraudeAction, DayOfWeek } from '../models/maraude.model';
-import { Merchant } from '../models/merchant.model';
+import { Merchant } from '../models/merchant.model.';
 
 @Injectable({
   providedIn: 'root'
