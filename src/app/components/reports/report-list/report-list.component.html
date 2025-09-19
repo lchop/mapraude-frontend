@@ -1,0 +1,88 @@
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- En-tête -->
+  <div class="flex justify-between items-center mb-8">
+    <div>
+      <h2 class="text-3xl font-bold text-gray-900">Comptes-rendus</h2>
+      <p class="text-gray-600">Gérez les rapports de maraude</p>
+    </div>
+    <a routerLink="/reports/create" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+      + Nouveau rapport
+    </a>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center py-8">
+    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+  </div>
+
+  <!-- Liste -->
+  <div *ngIf="!loading" class="bg-white shadow overflow-hidden rounded-md">
+    <div *ngIf="reports.length === 0" class="text-center py-12 text-gray-500">
+      Aucun rapport trouvé. <a routerLink="/reports/create" class="text-blue-600 hover:underline">Créer le premier</a>
+    </div>
+
+    <ul *ngIf="reports.length > 0" class="divide-y divide-gray-200">
+      <li *ngFor="let report of reports" class="px-6 py-4 hover:bg-gray-50">
+        <div class="flex items-center justify-between">
+
+          <!-- Info rapport -->
+          <div class="flex-1">
+            <div class="flex items-center space-x-4 mb-2">
+              <h3 class="text-lg font-medium text-gray-900">
+                Rapport du {{ formatDate(report.reportDate) }}
+              </h3>
+              <span [class]="getStatusClass(report.status)" class="px-2 py-1 text-xs rounded-full">
+                {{ getStatusLabel(report.status) }}
+              </span>
+            </div>
+
+            <div class="text-sm text-gray-500 space-y-1">
+              <div class="flex space-x-4">
+                <span>{{ formatTime(report.startTime) }} - {{ formatTime(report.endTime) }}</span>
+                <span>{{ report.beneficiariesCount }} bénéficiaires</span>
+                <span>{{ report.volunteersCount }} bénévoles</span>
+              </div>
+              <div class="flex space-x-4">
+                <span *ngIf="report.maraudeAction">{{ report.maraudeAction.title }}</span>
+                <span *ngIf="report.creator">par {{ report.creator.firstName }} {{ report.creator.lastName }}</span>
+                <span *ngIf="report.hasUrgentSituations" class="text-red-600 font-medium">⚠ Situations urgentes</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex space-x-1 ml-4">
+            <!-- Voir -->
+            <!-- <button
+              (click)="viewReport(report)"
+              class="inline-flex items-center px-3 py-1 border border-gray-300 text-sm text-gray-700 bg-white rounded-md hover:bg-gray-50"
+              title="Voir le détail"
+            >
+              Voir
+            </button> -->
+
+            <!-- Modifier (si autorisé) -->
+            <button
+              *ngIf="canEdit(report)"
+              (click)="editReport(report)"
+              class="inline-flex items-center px-3 py-1 border border-green-300 text-sm text-green-700 bg-white rounded-md hover:bg-green-50"
+              title="Modifier le rapport"
+            >
+              Modifier
+            </button>
+
+            <!-- Supprimer (si autorisé) -->
+            <button
+              *ngIf="canDelete(report)"
+              (click)="deleteReport(report)"
+              class="inline-flex items-center px-3 py-1 border border-red-300 text-sm text-red-700 bg-white rounded-md hover:bg-red-50"
+              title="Supprimer le rapport"
+            >
+              Supprimer
+            </button>
+          </div>
+        </div>
+      </li>
+    </ul>
+  </div>
+</div>

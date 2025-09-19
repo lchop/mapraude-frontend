@@ -18,7 +18,8 @@
   <!-- Dashboard Content -->
   <div *ngIf="!loading">
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 mb-8">
+      <!-- Maraudes -->
       <div class="bg-white overflow-hidden shadow rounded-lg">
         <div class="p-5">
           <div class="flex items-center">
@@ -90,43 +91,96 @@
           </div>
         </div>
       </div>
+
+      <!-- NOUVEAU: Stats Rapports -->
+      <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="p-5">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+            </div>
+            <div class="ml-5 w-0 flex-1">
+              <dl>
+                <dt class="text-sm font-medium text-gray-500 truncate">Rapports</dt>
+                <dd class="text-lg font-medium text-gray-900">{{ stats.totalReports }}</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="p-5">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z"></path>
+              </svg>
+            </div>
+            <div class="ml-5 w-0 flex-1">
+              <dl>
+                <dt class="text-sm font-medium text-gray-500 truncate">En attente</dt>
+                <dd class="text-lg font-medium text-gray-900">{{ stats.pendingReports }}</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Actions Section -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <!-- Quick Actions -->
-      <div class="lg:col-span-1">
+    <!-- Actions et Contenu -->
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+      <!-- Actions rapides -->
+      <div class="xl:col-span-1">
         <div class="bg-white shadow rounded-lg p-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Actions rapides</h3>
           <div class="space-y-3">
-            <button
-              (click)="navigateToAddMaraude()"
-              class="w-full btn btn-primary flex items-center justify-center">
-              <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-              </svg>
-              Créer une nouvelle maraude
-            </button>
-
-            <button class="w-full btn btn-secondary flex items-center justify-center">
+            <!-- MISE À JOUR: Nouvelle route pour les rapports -->
+            <button (click)="navigateToAddReport()" class="w-full btn btn-secondary flex items-center justify-center">
               <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
               </svg>
               Créer un compte-rendu
             </button>
 
-            <button class="w-full btn btn-secondary flex items-center justify-center">
+            <button (click)="navigateToAddMaraude()" class="w-full btn btn-primary flex items-center justify-center">
               <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
               </svg>
-              Voir les statistiques
+              Créer une nouvelle maraude
             </button>
+          </div>
+        </div>
+
+        <!-- NOUVEAU: Résumé rapports récents -->
+        <div class="bg-white shadow rounded-lg p-6 mt-6" *ngIf="recentReports.length > 0">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Rapports récents</h3>
+            <button (click)="navigateToReports()" class="text-sm text-blue-600 hover:text-blue-500">
+              Voir tout
+            </button>
+          </div>
+
+          <div class="space-y-3">
+            <div *ngFor="let report of recentReports.slice(0, 3)"
+                 class="flex items-center justify-between p-2 hover:bg-gray-50 rounded cursor-pointer"
+                 (click)="navigateToViewReport(report.id)">
+              <div class="flex-1">
+                <p class="text-sm font-medium text-gray-900">{{ formatDate(report.reportDate) }}</p>
+                <p class="text-xs text-gray-500">{{ report.beneficiariesCount }} bénéficiaires</p>
+              </div>
+              <span [class]="getReportStatusClass(report.status)" class="px-2 py-1 text-xs rounded-full">
+                {{ getReportStatusText(report.status) }}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Recent Maraudes -->
-      <div class="lg:col-span-2">
+      <!-- Maraudes récentes -->
+      <div class="xl:col-span-2">
         <div class="bg-white shadow rounded-lg p-6">
           <div class="flex justify-between items-center mb-4">
             <h3 class="text-lg font-semibold text-gray-900">Mes maraudes récentes</h3>
@@ -200,7 +254,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
           <div>
-            <strong>Comptes-rendus :</strong> Mettez à jour vos maraudes avec le nombre de personnes rencontrées
+            <strong>Comptes-rendus :</strong> Créez des rapports détaillés après chaque maraude avec distributions et alertes
           </div>
         </div>
         <div class="flex items-start">
@@ -213,10 +267,10 @@
         </div>
         <div class="flex items-start">
           <svg class="h-5 w-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h2a2 2 0 002-2z"></path>
           </svg>
           <div>
-            <strong>Horaires :</strong> Indiquez les heures de début et fin pour faciliter l'organisation
+            <strong>Workflow rapports :</strong> Brouillon → Soumission → Validation par un coordinateur
           </div>
         </div>
       </div>

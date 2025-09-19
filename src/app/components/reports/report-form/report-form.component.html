@@ -1,0 +1,302 @@
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="mb-8">
+    <h2 class="text-3xl font-bold text-gray-900 mb-2">
+      {{ isEditMode ? 'Modifier le compte-rendu' : 'Créer un compte-rendu' }}
+    </h2>
+    <p class="text-gray-600">
+      {{ isEditMode ? 'Modifiez les informations du rapport ci-dessous.' : 'Remplissez les informations ci-dessous pour enregistrer votre rapport de maraude.' }}
+    </p>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="flex justify-center items-center py-12">
+    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+  </div>
+
+  <form [formGroup]="reportForm" (ngSubmit)="submitReport()" class="space-y-8" *ngIf="!loading">
+
+    <!-- 1. Infos générales SIMPLIFIÉES -->
+    <div class="bg-white shadow rounded-lg p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Informations générales</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        <!-- Maraude -->
+        <div class="col-span-1 md:col-span-2 lg:col-span-3">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Action de maraude *</label>
+          <select formControlName="maraudeActionId" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            <option value="">Sélectionnez une action</option>
+            <option *ngFor="let action of maraudeActions" [value]="action.id">
+              {{ action.title }} - {{ action.address }}
+            </option>
+          </select>
+          <p *ngIf="getFieldError('maraudeActionId')" class="mt-1 text-sm text-red-600">{{ getFieldError('maraudeActionId') }}</p>
+        </div>
+
+        <!-- Date -->
+        <div>
+  <label class="block text-sm font-medium text-gray-700 mb-2">Date *</label>
+  <input type="date" formControlName="reportDate" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"/>
+  <p *ngIf="getFieldError('reportDate')" class="mt-1 text-sm text-red-600">{{ getFieldError('reportDate') }}</p>
+</div>
+
+<!-- Status messages for duplicate checking -->
+<div class="col-span-1 md:col-span-2 lg:col-span-3">
+
+        <!-- Loading: Checking in progress -->
+        <div *ngIf="duplicateCheckInProgress" class="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-yellow-600"></div>
+            </div>
+            <div class="ml-3">
+              <p class="text-sm text-yellow-700">Vérification des rapports existants...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Error: Duplicate found -->
+        <div *ngIf="!duplicateCheckInProgress && duplicateCheckCompleted && duplicateFound" class="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <h3 class="text-sm font-medium text-red-800">Rapport déjà existant</h3>
+              <p class="text-sm text-red-700 mt-1">
+                Un compte-rendu existe déjà pour cette maraude à cette date.
+              </p>
+              <div *ngIf="duplicateInfo" class="text-sm text-red-600 mt-2 bg-red-100 p-2 rounded">
+                <p><strong>Créé par:</strong> {{ duplicateInfo.createdBy }}</p>
+                <p><strong>Date de création:</strong> {{ duplicateInfo.createdDate }}</p>
+                <p><strong>Statut:</strong> {{ duplicateInfo.status }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Success: No duplicate found -->
+        <div *ngIf="!duplicateCheckInProgress && duplicateCheckCompleted && !duplicateFound && reportForm.get('maraudeActionId')?.value && reportForm.get('reportDate')?.value" class="bg-green-50 border border-green-200 rounded-md p-4 mb-4">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <p class="text-sm text-green-700">Aucun rapport existant trouvé - Vous pouvez créer ce rapport</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+
+
+        <!-- Heure début -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Heure début *</label>
+          <input type="time" formControlName="startTime" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"/>
+          <p *ngIf="getFieldError('startTime')" class="mt-1 text-sm text-red-600">{{ getFieldError('startTime') }}</p>
+        </div>
+
+        <!-- Heure fin -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Heure fin *</label>
+          <input type="time" formControlName="endTime" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"/>
+          <p *ngIf="getFieldError('endTime')" class="mt-1 text-sm text-red-600">{{ getFieldError('endTime') }}</p>
+        </div>
+
+        <!-- Bénéficiaires -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Bénéficiaires aidés *</label>
+          <input type="number" formControlName="beneficiariesCount" min="0" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"/>
+          <p *ngIf="getFieldError('beneficiariesCount')" class="mt-1 text-sm text-red-600">{{ getFieldError('beneficiariesCount') }}</p>
+        </div>
+
+        <!-- Bénévoles -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Nombre de bénévoles *</label>
+          <input type="number" formControlName="volunteersCount" min="1" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"/>
+          <p *ngIf="getFieldError('volunteersCount')" class="mt-1 text-sm text-red-600">{{ getFieldError('volunteersCount') }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Distributions -->
+    <div class="bg-white shadow rounded-lg p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">Distributions</h3>
+        <button type="button" (click)="addDistribution()" class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+          + Ajouter
+        </button>
+      </div>
+
+      <div formArrayName="distributions" class="space-y-4">
+        <div *ngIf="distributions.length === 0" class="text-gray-500 text-center py-8">
+          Aucune distribution ajoutée.
+        </div>
+
+        <div *ngFor="let dist of distributions.controls; let i = index" [formGroupName]="i" class="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Type *</label>
+            <select formControlName="distributionTypeId" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
+              <option value="">Sélectionner</option>
+              <optgroup label="🍽️ Alimentation" *ngIf="getDistributionsByCategory('meal').length > 0">
+                <option *ngFor="let type of getDistributionsByCategory('meal')" [value]="type.id">
+                  {{ type.name }}
+                </option>
+              </optgroup>
+              <optgroup label="🧼 Hygiène" *ngIf="getDistributionsByCategory('hygiene').length > 0">
+                <option *ngFor="let type of getDistributionsByCategory('hygiene')" [value]="type.id">
+                  {{ type.name }}
+                </option>
+              </optgroup>
+              <optgroup label="👕 Vêtements" *ngIf="getDistributionsByCategory('clothing').length > 0">
+                <option *ngFor="let type of getDistributionsByCategory('clothing')" [value]="type.id">
+                  {{ type.name }}
+                </option>
+              </optgroup>
+              <optgroup label="🏥 Médical" *ngIf="getDistributionsByCategory('medical').length > 0">
+                <option *ngFor="let type of getDistributionsByCategory('medical')" [value]="type.id">
+                  {{ type.name }}
+                </option>
+              </optgroup>
+              <optgroup label="🔧 Autres" *ngIf="getDistributionsByCategory('other').length > 0">
+                <option *ngFor="let type of getDistributionsByCategory('other')" [value]="type.id">
+                  {{ type.name }}
+                </option>
+              </optgroup>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Quantité *</label>
+            <input type="number" formControlName="quantity" min="1" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm"/>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <input type="text" formControlName="notes" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm"/>
+          </div>
+          <div class="flex items-end">
+            <button type="button" (click)="removeDistribution(i)" class="w-full px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50">
+              Supprimer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Alertes -->
+    <div class="bg-white shadow rounded-lg p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">Alertes et situations urgentes</h3>
+        <button type="button" (click)="addAlert()" class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700">
+          + Ajouter une alerte
+        </button>
+      </div>
+
+      <div formArrayName="alerts" class="space-y-6">
+        <div *ngIf="alerts.length === 0" class="text-gray-500 text-center py-8">
+          Aucune alerte signalée.
+        </div>
+
+        <div *ngFor="let alert of alerts.controls; let i = index" [formGroupName]="i" class="border border-red-200 rounded-lg p-6 bg-red-50">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Type d'alerte *</label>
+              <select formControlName="alertType" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm">
+                <option value="">Sélectionner</option>
+                <option *ngFor="let type of alertTypes" [value]="type.value">{{ type.label }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Sévérité *</label>
+              <select formControlName="severity" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm">
+                <option value="">Sélectionner</option>
+                <option *ngFor="let severity of severityLevels" [value]="severity.value">{{ severity.label }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Description situation *</label>
+            <textarea formControlName="situationDescription" rows="3" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm" placeholder="Décrivez la situation..."></textarea>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Localisation</label>
+              <input type="text" formControlName="locationAddress" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm" placeholder="Adresse..."/>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Description personne</label>
+              <input type="text" formControlName="personDescription" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm" placeholder="Âge, caractéristiques..."/>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Actions prises</label>
+            <textarea formControlName="actionTaken" rows="2" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm" placeholder="Actions effectuées..."></textarea>
+          </div>
+
+          <div class="mb-4">
+            <label class="flex items-center">
+              <input type="checkbox" formControlName="followUpRequired" class="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"/>
+              <span class="ml-2 text-sm text-gray-900">Suivi requis</span>
+            </label>
+          </div>
+
+          <div class="mb-4" *ngIf="alert.get('followUpRequired')?.value">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Notes de suivi</label>
+            <textarea formControlName="followUpNotes" rows="2" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm" placeholder="Type de suivi nécessaire..."></textarea>
+          </div>
+
+          <button type="button" (click)="removeAlert(i)" class="text-red-600 hover:text-red-800 text-sm">
+            Supprimer cette alerte
+          </button>
+        </div>
+      </div>
+
+      <!-- Détails situations urgentes -->
+      <div class="mt-6 pt-6 border-t" *ngIf="alerts.length > 0">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Détails supplémentaires situations urgentes</label>
+        <textarea formControlName="urgentSituationsDetails" rows="3" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm" placeholder="Informations complémentaires..."></textarea>
+      </div>
+    </div>
+
+    <!-- 4. Notes -->
+    <div class="bg-white shadow rounded-lg p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Observations et notes</h3>
+      <div class="space-y-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Notes générales</label>
+          <textarea formControlName="generalNotes" rows="4" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-purple-500 focus:border-purple-500 sm:text-sm" placeholder="Observations générales..."></textarea>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Difficultés rencontrées</label>
+          <textarea formControlName="difficultiesEncountered" rows="3" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-purple-500 focus:border-purple-500 sm:text-sm" placeholder="Problèmes, obstacles..."></textarea>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Points positifs</label>
+          <textarea formControlName="positivePoints" rows="3" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-purple-500 focus:border-purple-500 sm:text-sm" placeholder="Moments positifs, succès..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Actions -->
+    <div class="bg-white shadow rounded-lg p-6">
+      <div class="flex justify-end space-x-4">
+        <button type="button" (click)="cancel()" class="px-6 py-3 border border-gray-300 text-gray-700 bg-white rounded-md hover:bg-gray-50">
+          Annuler
+        </button>
+        <button type="submit" [disabled]="submitting" class="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">
+          {{ submitting ? 'Création...' : 'Créer le rapport' }}
+        </button>
+      </div>
+    </div>
+
+  </form>
+</div>
