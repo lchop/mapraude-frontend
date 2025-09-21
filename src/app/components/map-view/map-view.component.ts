@@ -96,7 +96,7 @@ export class MapViewComponent implements OnInit, AfterViewInit, OnDestroy {
     this.maraudes.forEach(maraude => {
       const icon = this.createMaraudeIcon(maraude.status);
 
-      const marker = L.marker([maraude.latitude, maraude.longitude], { icon })
+      const marker = L.marker([Number(maraude.startLatitude), Number(maraude.startLongitude)], { icon })
         .bindPopup(this.createMaraudePopup(maraude));
 
       this.maraudeMarkers.addLayer(marker);

@@ -4,8 +4,12 @@ export interface MaraudeAction {
   id: string;
   title: string;
   description?: string;
-  latitude: number;
-  longitude: number;
+  startLatitude?: number;
+  startLongitude?: number;
+  startAddress?: string;
+  waypoints?: Waypoint[];
+  estimatedDistance?: number;
+  estimatedDuration?: number;
   address?: string;
 
   // NEW: Weekly recurring fields
@@ -40,6 +44,15 @@ export interface MaraudeAction {
 
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface Waypoint {
+  id: string;
+  latitude: number;
+  longitude: number;
+  address?: string;
+  name?: string;
+  order: number;
 }
 
 // Helper interface for day names

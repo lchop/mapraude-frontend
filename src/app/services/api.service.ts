@@ -62,43 +62,54 @@ export class ApiService {
     });
   }
 
-  // Create a new maraude - UPDATED with manual headers
   createMaraude(maraudeData: {
-    title: string;
-    description?: string;
-    latitude: number;
-    longitude: number;
-    address?: string;
-    isRecurring: boolean;
-    dayOfWeek?: number | null;
-    scheduledDate?: string | null;
-    startTime: string;
-    endTime?: string;
-    participantsCount?: number;
-    notes?: string;
-  }): Observable<{ message: string; action: MaraudeAction }> {
-    const token = localStorage.getItem('maraude_token');
-    console.log('🔐 Création maraude - Token présent:', !!token);
-    console.log('📊 Données maraude envoyées:', maraudeData);
+  title: string;
+  description?: string;
+  startLatitude: number;  // NEW: specific start coordinates
+  startLongitude: number; // NEW: specific start coordinates
+  startAddress?: string;  // NEW: start address
+  waypoints?: any[];      // NEW: waypoints array
+  estimatedDistance?: number;  // NEW: calculated distance
+  estimatedDuration?: number;  // NEW: calculated duration
+  routePolyline?: string;      // NEW: route visualization data
+  isRecurring: boolean;
+  dayOfWeek?: number | null;
+  scheduledDate?: string | null;
+  startTime: string;
+  endTime?: string;
+  participantsCount?: number;
+  notes?: string;
+  // Backward compatibility
+  latitude?: number;      // Keep for compatibility
+  longitude?: number;     // Keep for compatibility
+  address?: string;       // Keep for compatibility
+}): Observable<{ message: string; action: MaraudeAction }> {
+  const token = localStorage.getItem('maraude_token');
+  console.log('🔐 Création maraude avec waypoints - Token présent:', !!token);
+  console.log('📊 Données maraude envoyées:', maraudeData);
 
-    if (!token) {
-      throw new Error('Token d\'authentification manquant');
-    }
-
-    return this.http.post<{ message: string; action: MaraudeAction }>(
-      `${this.baseUrl}/maraudes`,
-      maraudeData,
-      { headers: this.getAuthHeaders() }
-    );
+  if (!token) {
+    throw new Error('Token d\'authentification manquant');
   }
 
-  // Update an existing maraude - UPDATED with manual headers
+  return this.http.post<{ message: string; action: MaraudeAction }>(
+    `${this.baseUrl}/maraudes`,
+    maraudeData,
+    { headers: this.getAuthHeaders() }
+  );
+  }
+
+  // Updated update method with waypoint support
   updateMaraude(id: string, maraudeData: {
     title?: string;
     description?: string;
-    latitude?: number;
-    longitude?: number;
-    address?: string;
+    startLatitude?: number;     // NEW
+    startLongitude?: number;    // NEW
+    startAddress?: string;      // NEW
+    waypoints?: any[];          // NEW
+    estimatedDistance?: number; // NEW
+    estimatedDuration?: number; // NEW
+    routePolyline?: string;     // NEW
     isRecurring?: boolean;
     dayOfWeek?: number | null;
     scheduledDate?: string | null;
@@ -110,6 +121,10 @@ export class ApiService {
     materialsDistributed?: any;
     notes?: string;
     isActive?: boolean;
+    // Backward compatibility
+    latitude?: number;
+    longitude?: number;
+    address?: string;
   }): Observable<{ message: string; action: MaraudeAction }> {
     return this.http.put<{ message: string; action: MaraudeAction }>(
       `${this.baseUrl}/maraudes/${id}`,

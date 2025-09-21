@@ -1,5 +1,5 @@
 <div class="min-h-screen bg-gray-50 py-8">
-  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
     <!-- Header -->
     <div class="mb-8">
@@ -16,7 +16,7 @@
         {{ isEditing ? 'Modifier la maraude' : 'Créer une nouvelle maraude' }}
       </h1>
       <p class="mt-2 text-gray-600">
-        {{ isEditing ? 'Modifiez les informations de votre maraude' : 'Planifiez une nouvelle maraude pour votre association' }}
+        {{ isEditing ? 'Modifiez le parcours et les informations de votre maraude' : 'Planifiez une nouvelle maraude avec son parcours' }}
       </p>
     </div>
 
@@ -25,301 +25,420 @@
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
     </div>
 
-    <!-- Form -->
-    <div *ngIf="!loading" class="bg-white shadow-sm rounded-lg">
-      <form (ngSubmit)="onSubmit()" class="p-6 space-y-6">
+    <!-- Main Content Grid -->
+    <div *ngIf="!loading" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-        <!-- Error message -->
-        <div *ngIf="error" class="rounded-md bg-red-50 p-4">
-          <div class="text-sm text-red-700">{{ error }}</div>
-        </div>
+      <!-- Form Section -->
+      <div class="bg-white shadow-sm rounded-lg">
+        <form (ngSubmit)="onSubmit()" class="p-6 space-y-6">
 
-        <!-- Informations générales -->
-        <div class="border-b border-gray-200 pb-6">
-          <h2 class="text-lg font-medium text-gray-900 mb-4">Informations générales</h2>
-
-          <div class="grid grid-cols-1 gap-6">
-            <!-- Titre -->
-            <div>
-              <label for="title" class="block text-sm font-medium text-gray-700">
-                Titre de la maraude *
-              </label>
-              <input
-                type="text"
-                id="title"
-                [(ngModel)]="maraudeData.title"
-                name="title"
-                required
-                maxlength="100"
-                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                placeholder="Ex: Maraude centre-ville">
-            </div>
-
-            <!-- Description -->
-            <div>
-              <label for="description" class="block text-sm font-medium text-gray-700">
-                Description
-              </label>
-              <textarea
-                id="description"
-                [(ngModel)]="maraudeData.description"
-                name="description"
-                rows="3"
-                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                placeholder="Décrivez le parcours, les objectifs, etc."></textarea>
-            </div>
-          </div>
-        </div>
-
-        <!-- Planning -->
-        <div class="border-b border-gray-200 pb-6">
-          <h2 class="text-lg font-medium text-gray-900 mb-4">Planning</h2>
-
-          <!-- Type de maraude -->
-          <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-3">Type de maraude</label>
-            <div class="flex space-x-6">
-              <label class="flex items-center">
-                <input
-                  type="radio"
-                  [(ngModel)]="maraudeData.isRecurring"
-                  name="isRecurring"
-                  [value]="true"
-                  (change)="onRecurringChange()"
-                  class="focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300">
-                <span class="ml-2 text-sm text-gray-700">Récurrente (chaque semaine)</span>
-              </label>
-              <label class="flex items-center">
-                <input
-                  type="radio"
-                  [(ngModel)]="maraudeData.isRecurring"
-                  name="isRecurring"
-                  [value]="false"
-                  (change)="onRecurringChange()"
-                  class="focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300">
-                <span class="ml-2 text-sm text-gray-700">Ponctuelle (une seule fois)</span>
-              </label>
-            </div>
+          <!-- Error message -->
+          <div *ngIf="error" class="rounded-md bg-red-50 p-4">
+            <div class="text-sm text-red-700">{{ error }}</div>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- Jour de la semaine (si récurrente) -->
-            <div *ngIf="maraudeData.isRecurring">
-              <label for="dayOfWeek" class="block text-sm font-medium text-gray-700">
-                Jour de la semaine *
-              </label>
-              <select
-                id="dayOfWeek"
-                [(ngModel)]="maraudeData.dayOfWeek"
-                name="dayOfWeek"
-                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
-                <option *ngFor="let day of daysOfWeek" [value]="day.value">
-                  {{ day.name }}
-                </option>
-              </select>
-            </div>
+          <!-- Informations générales -->
+          <div class="border-b border-gray-200 pb-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-4">Informations générales</h2>
 
-            <!-- Date (si ponctuelle) -->
-            <div *ngIf="!maraudeData.isRecurring">
-              <label for="scheduledDate" class="block text-sm font-medium text-gray-700">
-                Date *
-              </label>
-              <input
-                type="date"
-                id="scheduledDate"
-                [(ngModel)]="maraudeData.scheduledDate"
-                name="scheduledDate"
-                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
-            </div>
-
-            <!-- Heure de début -->
-            <div>
-              <label for="startTime" class="block text-sm font-medium text-gray-700">
-                Heure de début *
-              </label>
-              <input
-                type="time"
-                id="startTime"
-                [(ngModel)]="maraudeData.startTime"
-                name="startTime"
-                required
-                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
-            </div>
-
-            <!-- Heure de fin -->
-            <div>
-              <label for="endTime" class="block text-sm font-medium text-gray-700">
-                Heure de fin
-              </label>
-              <input
-                type="time"
-                id="endTime"
-                [(ngModel)]="maraudeData.endTime"
-                name="endTime"
-                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
-            </div>
-          </div>
-        </div>
-
-        <!-- Localisation -->
-        <div class="border-b border-gray-200 pb-6">
-          <h2 class="text-lg font-medium text-gray-900 mb-4">Localisation</h2>
-
-          <div class="grid grid-cols-1 gap-6">
-            <!-- Adresse -->
-            <div>
-              <label for="address" class="block text-sm font-medium text-gray-700">
-                Adresse
-              </label>
-              <div class="mt-1 flex rounded-md shadow-sm">
+            <div class="grid grid-cols-1 gap-6">
+              <!-- Titre -->
+              <div>
+                <label for="title" class="block text-sm font-medium text-gray-700">
+                  Titre de la maraude *
+                </label>
                 <input
                   type="text"
-                  id="address"
-                  [(ngModel)]="maraudeData.address"
-                  name="address"
-                  class="flex-1 block w-full border-gray-300 rounded-l-md focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                  placeholder="Point de départ ou zone de la maraude">
-                <button
-                  type="button"
-                  (click)="getCurrentLocation()"
-                  class="inline-flex items-center px-3 py-2 border border-l-0 border-gray-300 rounded-r-md bg-gray-50 text-gray-500 text-sm hover:bg-gray-100">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                  </svg>
-                </button>
+                  id="title"
+                  [(ngModel)]="maraudeData.title"
+                  name="title"
+                  required
+                  maxlength="100"
+                  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  placeholder="Ex: Maraude centre-ville">
               </div>
-              <p class="mt-1 text-xs text-gray-500">
-                Cliquez sur l'icône pour utiliser votre position actuelle
+
+              <!-- Description -->
+              <div>
+                <label for="description" class="block text-sm font-medium text-gray-700">
+                  Description
+                </label>
+                <textarea
+                  id="description"
+                  [(ngModel)]="maraudeData.description"
+                  name="description"
+                  rows="3"
+                  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  placeholder="Décrivez le parcours, les objectifs, etc."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Planning -->
+          <div class="border-b border-gray-200 pb-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-4">Planning</h2>
+
+            <!-- Type de maraude -->
+            <div class="mb-6">
+              <label class="block text-sm font-medium text-gray-700 mb-3">Type de maraude</label>
+              <div class="flex space-x-6">
+                <label class="flex items-center">
+                  <input
+                    type="radio"
+                    [(ngModel)]="maraudeData.isRecurring"
+                    name="isRecurring"
+                    [value]="true"
+                    (change)="onRecurringChange()"
+                    class="focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300">
+                  <span class="ml-2 text-sm text-gray-700">Récurrente (chaque semaine)</span>
+                </label>
+                <label class="flex items-center">
+                  <input
+                    type="radio"
+                    [(ngModel)]="maraudeData.isRecurring"
+                    name="isRecurring"
+                    [value]="false"
+                    (change)="onRecurringChange()"
+                    class="focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300">
+                  <span class="ml-2 text-sm text-gray-700">Ponctuelle (une seule fois)</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <!-- Jour de la semaine -->
+              <div *ngIf="maraudeData.isRecurring">
+                <label for="dayOfWeek" class="block text-sm font-medium text-gray-700">
+                  Jour de la semaine *
+                </label>
+                <select
+                  id="dayOfWeek"
+                  [(ngModel)]="maraudeData.dayOfWeek"
+                  name="dayOfWeek"
+                  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                  <option *ngFor="let day of daysOfWeek" [value]="day.value">
+                    {{ day.name }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Date -->
+              <div *ngIf="!maraudeData.isRecurring">
+                <label for="scheduledDate" class="block text-sm font-medium text-gray-700">
+                  Date *
+                </label>
+                <input
+                  type="date"
+                  id="scheduledDate"
+                  [(ngModel)]="maraudeData.scheduledDate"
+                  name="scheduledDate"
+                  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+              </div>
+
+              <!-- Heure de début -->
+              <div>
+                <label for="startTime" class="block text-sm font-medium text-gray-700">
+                  Heure de début *
+                </label>
+                <input
+                  type="time"
+                  id="startTime"
+                  [(ngModel)]="maraudeData.startTime"
+                  name="startTime"
+                  required
+                  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+              </div>
+
+              <!-- Heure de fin -->
+              <div>
+                <label for="endTime" class="block text-sm font-medium text-gray-700">
+                  Heure de fin
+                </label>
+                <input
+                  type="time"
+                  id="endTime"
+                  [(ngModel)]="maraudeData.endTime"
+                  name="endTime"
+                  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+              </div>
+            </div>
+          </div>
+
+          <!-- Point de départ -->
+          <div class="border-b border-gray-200 pb-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-4">Point de départ</h2>
+
+            <div class="grid grid-cols-1 gap-6">
+              <!-- Adresse de départ -->
+              <div>
+                <label for="startAddress" class="block text-sm font-medium text-gray-700">
+                  Adresse de départ
+                </label>
+                <div class="mt-1 flex rounded-md shadow-sm">
+                  <input
+                    type="text"
+                    id="startAddress"
+                    [(ngModel)]="maraudeData.startAddress"
+                    name="startAddress"
+                    class="flex-1 block w-full border-gray-300 rounded-l-md focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    placeholder="Point de départ de la maraude">
+                  <button
+                    type="button"
+                    (click)="getCurrentLocation()"
+                    class="inline-flex items-center px-3 py-2 border border-l-0 border-gray-300 rounded-r-md bg-gray-50 text-gray-500 text-sm hover:bg-gray-100">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Coordonnées de départ -->
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label for="startLatitude" class="block text-sm font-medium text-gray-700">
+                    Latitude *
+                  </label>
+                  <input
+                    type="number"
+                    id="startLatitude"
+                    [(ngModel)]="maraudeData.startLatitude"
+                    name="startLatitude"
+                    step="0.000001"
+                    min="-90"
+                    max="90"
+                    required
+                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                </div>
+                <div>
+                  <label for="startLongitude" class="block text-sm font-medium text-gray-700">
+                    Longitude *
+                  </label>
+                  <input
+                    type="number"
+                    id="startLongitude"
+                    [(ngModel)]="maraudeData.startLongitude"
+                    name="startLongitude"
+                    step="0.000001"
+                    min="-180"
+                    max="180"
+                    required
+                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Points d'étape -->
+          <div class="border-b border-gray-200 pb-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-4">Points d'étape du parcours</h2>
+
+            <!-- Route Summary -->
+            <div class="bg-blue-50 p-4 rounded-lg mb-4">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4 text-sm">
+                  <span class="text-blue-700">
+                    <strong>{{ maraudeData.waypoints.length + 1 }}</strong> points au total
+                  </span>
+                  <span class="text-blue-700" *ngIf="maraudeData.estimatedDistance > 0">
+                    <strong>{{ maraudeData.estimatedDistance }}</strong> km estimés
+                  </span>
+                  <span class="text-blue-700" *ngIf="maraudeData.estimatedDuration > 0">
+                    <strong>{{ maraudeData.estimatedDuration }}</strong> min estimées
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Waypoints List -->
+            <div *ngIf="maraudeData.waypoints.length > 0" class="space-y-3">
+              <div
+                *ngFor="let waypoint of maraudeData.waypoints; let i = index; trackBy: trackByWaypoint"
+                class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+
+                <div class="flex items-center space-x-3">
+                  <div class="flex-shrink-0 w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center text-sm font-medium">
+                    {{ i + 1 }}
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900 truncate">
+                      {{ waypoint.name }}
+                    </p>
+                    <p class="text-xs text-gray-500 truncate">
+                      {{ waypoint.address }}
+                    </p>
+                  </div>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                  <!-- Move up -->
+                  <button
+                    type="button"
+                    (click)="moveWaypoint(waypoint.id, 'up')"
+                    [disabled]="i === 0"
+                    class="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+                    </svg>
+                  </button>
+
+                  <!-- Move down -->
+                  <button
+                    type="button"
+                    (click)="moveWaypoint(waypoint.id, 'down')"
+                    [disabled]="i === maraudeData.waypoints.length - 1"
+                    class="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </button>
+
+                  <!-- Remove -->
+                  <button
+                    type="button"
+                    (click)="removeWaypoint(waypoint.id)"
+                    class="p-1 text-red-400 hover:text-red-600">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Instructions -->
+            <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+              <p class="text-sm text-gray-600">
+                💡 <strong>Comment ajouter des points d'étape :</strong><br>
+                Cliquez sur la carte ci-contre pour ajouter des points d'étape à votre parcours.
+                Vous pouvez ensuite les réorganiser avec les flèches ou les supprimer.
               </p>
             </div>
+          </div>
 
-            <!-- Coordonnées -->
-            <div class="grid grid-cols-2 gap-4">
+          <!-- Informations complémentaires -->
+          <div class="pb-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-4">Informations complémentaires</h2>
+
+            <div class="grid grid-cols-1 gap-6">
+              <!-- Nombre de participants -->
               <div>
-                <label for="latitude" class="block text-sm font-medium text-gray-700">
-                  Latitude *
+                <label for="participantsCount" class="block text-sm font-medium text-gray-700">
+                  Nombre de participants prévus
                 </label>
                 <input
                   type="number"
-                  id="latitude"
-                  [(ngModel)]="maraudeData.latitude"
-                  name="latitude"
-                  step="0.000001"
-                  min="-90"
-                  max="90"
-                  required
+                  id="participantsCount"
+                  [(ngModel)]="maraudeData.participantsCount"
+                  name="participantsCount"
+                  min="0"
                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
               </div>
+
+              <!-- Notes -->
               <div>
-                <label for="longitude" class="block text-sm font-medium text-gray-700">
-                  Longitude *
+                <label for="notes" class="block text-sm font-medium text-gray-700">
+                  Notes
                 </label>
-                <input
-                  type="number"
-                  id="longitude"
-                  [(ngModel)]="maraudeData.longitude"
-                  name="longitude"
-                  step="0.000001"
-                  min="-180"
-                  max="180"
-                  required
-                  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                <textarea
+                  id="notes"
+                  [(ngModel)]="maraudeData.notes"
+                  name="notes"
+                  rows="3"
+                  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  placeholder="Informations complémentaires, consignes particulières..."></textarea>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Informations complémentaires -->
-        <div class="pb-6">
-          <h2 class="text-lg font-medium text-gray-900 mb-4">Informations complémentaires</h2>
-
-          <div class="grid grid-cols-1 gap-6">
-            <!-- Nombre de participants -->
-            <div>
-              <label for="participantsCount" class="block text-sm font-medium text-gray-700">
-                Nombre de participants prévus
-              </label>
-              <input
-                type="number"
-                id="participantsCount"
-                [(ngModel)]="maraudeData.participantsCount"
-                name="participantsCount"
-                min="0"
-                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+          <!-- Actions -->
+          <div class="flex justify-between pt-6 border-t border-gray-200">
+            <!-- Delete button -->
+            <div *ngIf="isEditing && canDelete()">
+              <button
+                type="button"
+                (click)="deleteMaraude()"
+                [disabled]="deleting || saving"
+                class="btn btn-danger">
+                <span *ngIf="deleting" class="inline-flex items-center">
+                  <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Suppression...
+                </span>
+                <span *ngIf="!deleting" class="inline-flex items-center">
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                  </svg>
+                  Supprimer cette maraude
+                </span>
+              </button>
             </div>
+            <div *ngIf="!isEditing || !canDelete()"></div>
 
-            <!-- Notes -->
-            <div>
-              <label for="notes" class="block text-sm font-medium text-gray-700">
-                Notes
-              </label>
-              <textarea
-                id="notes"
-                [(ngModel)]="maraudeData.notes"
-                name="notes"
-                rows="3"
-                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                placeholder="Informations complémentaires, consignes particulières..."></textarea>
+            <!-- Cancel and Submit buttons -->
+            <div class="flex space-x-3">
+              <button
+                type="button"
+                (click)="goBack()"
+                [disabled]="saving || deleting"
+                class="btn btn-secondary">
+                Annuler
+              </button>
+              <button
+                type="submit"
+                [disabled]="saving || deleting"
+                class="btn btn-primary">
+                <span *ngIf="saving" class="inline-flex items-center">
+                  <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Sauvegarde...
+                </span>
+                <span *ngIf="!saving">
+                  {{ isEditing ? 'Modifier' : 'Créer' }} la maraude
+                </span>
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Map Section -->
+      <div class="bg-white shadow-sm rounded-lg p-6">
+        <h2 class="text-lg font-medium text-gray-900 mb-4">Planification du parcours</h2>
+
+        <!-- Map Container -->
+        <div class="relative">
+          <div
+            #mapContainer
+            class="w-full h-96 rounded-lg border border-gray-300 bg-gray-100">
+          </div>
+
+          <!-- Map Loading Overlay -->
+          <div *ngIf="!isMapReady" class="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
+            <div class="text-center">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2"></div>
+              <p class="text-sm text-gray-600">Chargement de la carte...</p>
             </div>
           </div>
         </div>
 
-        <!-- Actions -->
-        <div class="flex justify-between pt-6 border-t border-gray-200">
-          <!-- Delete button (only in edit mode) -->
-          <div *ngIf="isEditing && canDelete()">
-            <button
-              type="button"
-              (click)="deleteMaraude()"
-              [disabled]="deleting || saving"
-              class="btn btn-danger">
-              <span *ngIf="deleting" class="inline-flex items-center">
-                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Suppression...
-              </span>
-              <span *ngIf="!deleting" class="inline-flex items-center">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                </svg>
-                Supprimer cette maraude
-              </span>
-            </button>
-          </div>
-
-          <!-- Empty div to maintain layout when no delete button -->
-          <div *ngIf="!isEditing || !canDelete()"></div>
-
-          <!-- Cancel and Submit buttons -->
-          <div class="flex space-x-3">
-            <button
-              type="button"
-              (click)="goBack()"
-              [disabled]="saving || deleting"
-              class="btn btn-secondary">
-              Annuler
-            </button>
-            <button
-              type="submit"
-              [disabled]="saving || deleting"
-              class="btn btn-primary">
-              <span *ngIf="saving" class="inline-flex items-center">
-                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Sauvegarde...
-              </span>
-              <span *ngIf="!saving">
-                {{ isEditing ? 'Modifier' : 'Créer' }} la maraude
-              </span>
-            </button>
-          </div>
+        <!-- Map Instructions -->
+        <div class="mt-4 p-4 bg-blue-50 rounded-lg">
+          <h3 class="text-sm font-medium text-blue-900 mb-2">Instructions :</h3>
+          <ul class="text-sm text-blue-700 space-y-1">
+            <li>🏁 Le point de départ est marqué par un drapeau</li>
+            <li>🎯 Cliquez sur la carte pour ajouter des points d'étape</li>
+            <li>📍 Les points sont numérotés dans l'ordre du parcours</li>
+            <li>🗺️ Une ligne bleue montre le parcours prévu</li>
+            <li>✏️ Utilisez la liste de gauche pour réorganiser les points</li>
+          </ul>
         </div>
-      </form>
+      </div>
     </div>
   </div>
 </div>

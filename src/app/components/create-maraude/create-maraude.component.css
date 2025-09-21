@@ -1,3 +1,5 @@
+/* Enhanced styles for waypoint maraude component */
+
 .btn {
   @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md transition-colors duration-200;
 }
@@ -14,7 +16,47 @@
   @apply bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
-/* Custom styling for form inputs */
+/* Map container styles */
+#mapContainer {
+  min-height: 400px;
+}
+
+/* Custom Leaflet marker styles */
+.custom-marker {
+  background: transparent;
+  border: none;
+}
+
+.start-marker {
+  font-size: 20px;
+  line-height: 1;
+  text-align: center;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.waypoint-marker {
+  background: #3B82F6;
+  color: white;
+  border-radius: 50%;
+  width: 25px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Form input focus styles */
 input:focus,
 select:focus,
 textarea:focus {
@@ -37,7 +79,48 @@ input[type="radio"]:checked {
   @apply bg-primary-600 border-primary-600;
 }
 
-/* Form section headers */
-h2 {
-  @apply border-b border-gray-200 pb-2;
+/* Waypoint list styling */
+.waypoint-item {
+  transition: all 0.2s ease-in-out;
+}
+
+.waypoint-item:hover {
+  @apply shadow-sm bg-gray-50;
+}
+
+/* Route summary styling */
+.route-summary {
+  background: linear-gradient(135deg, #EBF8FF 0%, #BEE3F8 100%);
+}
+
+/* Map instructions styling */
+.map-instructions {
+  background: linear-gradient(135deg, #EBF8FF 0%, #BEE3F8 100%);
+}
+
+/* Grid responsive adjustments */
+@media (max-width: 1024px) {
+  .lg\\:grid-cols-2 {
+    grid-template-columns: 1fr;
+  }
+
+  #mapContainer {
+    min-height: 300px;
+  }
+}
+
+/* Button hover effects */
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Error message styling */
+.error-message {
+  background: linear-gradient(135deg, #FEF2F2 0%, #FECACA 100%);
+}
+
+/* Success message styling */
+.success-message {
+  background: linear-gradient(135deg, #F0FDF4 0%, #BBF7D0 100%);
 }
