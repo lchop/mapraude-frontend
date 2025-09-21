@@ -1,28 +1,122 @@
 <header class="bg-white shadow-sm border-b border-gray-200">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center h-16">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <h1 class="text-2xl font-bold text-primary-600">
-                <a routerLink="/map">
-                    Mapraude
-                </a></h1>
-            </div>
-          </div>
-
-          <!-- <nav class="hidden md:block">
-            <div class="ml-10 flex items-baseline space-x-4">
-              <a href="#" class="text-gray-600 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">Carte</a>
-              <a href="#" class="text-gray-600 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">Maraudes</a>
-              <a href="#" class="text-gray-600 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">Commerces</a>
-            </div>
-          </nav> -->
-
-          <div class="flex items-center space-x-4">
-            <a routerLink="/login" class="btn btn-primary">
-              Connexion Association
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between items-center h-16">
+      <div class="flex items-center">
+        <div class="flex-shrink-0">
+          <h1 class="text-2xl font-bold text-primary-600">
+            <a routerLink="/map">
+              Mapraude
             </a>
-          </div>
+          </h1>
         </div>
       </div>
-    </header>
+
+      <!-- Navigation (for logged in users) -->
+      <nav class="hidden md:block" *ngIf="isLoggedIn">
+        <div class="ml-10 flex items-baseline space-x-4">
+          <a routerLink="/map"
+             class="text-gray-600 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium"
+             routerLinkActive="text-primary-600 font-semibold">
+            Carte
+          </a>
+          <a routerLink="/dashboard"
+             class="text-gray-600 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium"
+             routerLinkActive="text-primary-600 font-semibold">
+            Dashboard
+          </a>
+        </div>
+      </nav>
+
+      <!-- User actions -->
+      <div class="flex items-center space-x-4">
+        <!-- Not logged in -->
+        <div *ngIf="!isLoggedIn">
+          <a routerLink="/login" class="btn btn-primary">
+            Connexion Association
+          </a>
+        </div>
+
+        <!-- Logged in -->
+        <div *ngIf="isLoggedIn" class="flex items-center space-x-4">
+          <!-- User info -->
+          <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-2">
+              <div class="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
+                <span class="text-white text-sm font-semibold">
+                  {{ getUserInitials() }}
+                </span>
+              </div>
+              <div class="hidden sm:block">
+                <p class="text-sm font-medium text-gray-700">
+                  {{ currentUser?.firstName }} {{ currentUser?.lastName }}
+                </p>
+                <p class="text-xs text-gray-500">
+                  {{ getRoleLabel() }}{{ currentUser?.association?.name ? ' - ' + currentUser?.association?.name : '' }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Logout button -->
+          <button
+            (click)="logout()"
+            class="btn btn-secondary"
+            title="Se déconnecter">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+            </svg>
+            <span class="hidden sm:inline">Déconnexion</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile menu button -->
+      <div class="md:hidden" *ngIf="isLoggedIn">
+        <button
+          (click)="toggleMobileMenu()"
+          class="text-gray-600 hover:text-primary-600 p-2">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile menu -->
+    <div class="md:hidden" *ngIf="isLoggedIn && showMobileMenu">
+      <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 border-t border-gray-200">
+        <a routerLink="/map"
+           class="block px-3 py-2 text-base font-medium text-gray-600 hover:text-primary-600"
+           routerLinkActive="text-primary-600 font-semibold"
+           (click)="closeMobileMenu()">
+          Carte
+        </a>
+        <a routerLink="/dashboard"
+           class="block px-3 py-2 text-base font-medium text-gray-600 hover:text-primary-600"
+           routerLinkActive="text-primary-600 font-semibold"
+           (click)="closeMobileMenu()">
+          Dashboard
+        </a>
+
+        <!-- Mobile user info -->
+        <div class="border-t border-gray-200 pt-3 mt-3">
+          <div class="px-3 py-2">
+            <p class="text-sm font-medium text-gray-700">
+              {{ currentUser?.firstName }} {{ currentUser?.lastName }}
+            </p>
+            <p class="text-xs text-gray-500">
+              {{ getRoleLabel() }}{{ currentUser?.association?.name ? ' - ' + currentUser?.association?.name : '' }}
+            </p>
+          </div>
+          <button
+            (click)="logout()"
+            class="w-full text-left px-3 py-2 text-base font-medium text-red-600 hover:text-red-700">
+            Déconnexion
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>

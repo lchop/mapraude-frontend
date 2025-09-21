@@ -65,6 +65,10 @@ export class ReportFormComponent implements OnInit {
     }
   }
 
+  goBack() {
+    this.router.navigate(['/dashboard']);
+  }
+
   initForm() {
     this.reportForm = this.fb.group({
       maraudeActionId: ['', Validators.required],

@@ -18,43 +18,8 @@
   <!-- Dashboard Content -->
   <div *ngIf="!loading">
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-6 mb-8">
       <!-- Maraudes -->
-      <div class="bg-white overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-              </svg>
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Total Maraudes</dt>
-                <dd class="text-lg font-medium text-gray-900">{{ stats.totalMaraudes }}</dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-white overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <svg class="h-6 w-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Actives</dt>
-                <dd class="text-lg font-medium text-gray-900">{{ stats.activeMaraudes }}</dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <div class="bg-white overflow-hidden shadow rounded-lg">
         <div class="p-5">
@@ -66,7 +31,7 @@
             </div>
             <div class="ml-5 w-0 flex-1">
               <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Terminées</dt>
+                <dt class="text-sm font-medium text-gray-500 truncate">Nombre de maraudes terminées</dt>
                 <dd class="text-lg font-medium text-gray-900">{{ stats.completedMaraudes }}</dd>
               </dl>
             </div>
@@ -86,43 +51,6 @@
               <dl>
                 <dt class="text-sm font-medium text-gray-500 truncate">Personnes Aidées</dt>
                 <dd class="text-lg font-medium text-gray-900">{{ stats.totalBeneficiaries }}</dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- NOUVEAU: Stats Rapports -->
-      <div class="bg-white overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-              </svg>
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Rapports</dt>
-                <dd class="text-lg font-medium text-gray-900">{{ stats.totalReports }}</dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-white overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z"></path>
-              </svg>
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">En attente</dt>
-                <dd class="text-lg font-medium text-gray-900">{{ stats.pendingReports }}</dd>
               </dl>
             </div>
           </div>
@@ -183,7 +111,7 @@
       <div class="xl:col-span-2">
         <div class="bg-white shadow rounded-lg p-6">
           <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-semibold text-gray-900">Mes maraudes récentes</h3>
+            <h3 class="text-lg font-semibold text-gray-900">Mes maraudes</h3>
             <span class="text-sm text-gray-500">{{ myMaraudes.length }} maraudes au total</span>
           </div>
 

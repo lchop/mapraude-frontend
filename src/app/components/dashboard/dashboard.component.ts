@@ -102,9 +102,6 @@ export class DashboardComponent implements OnInit {
 
     // Stats rapports
     this.stats.totalReports = this.recentReports.length;
-    this.stats.pendingReports = this.recentReports.filter(r =>
-      r.status === 'draft' || r.status === 'submitted'
-    ).length;
   }
 
   logout() {
