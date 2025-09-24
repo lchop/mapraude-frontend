@@ -21,39 +21,99 @@
   min-height: 400px;
 }
 
-/* Custom Leaflet marker styles */
-.custom-marker {
+/* Enhanced Custom Leaflet marker styles */
+.custom-start-marker, .custom-waypoint-marker {
   background: transparent;
   border: none;
 }
 
-.start-marker {
-  font-size: 20px;
-  line-height: 1;
-  text-align: center;
-  width: 30px;
-  height: 30px;
+/* Start marker with better visibility */
+.start-marker-container {
+  position: relative;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: white;
-  border-radius: 50%;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
-.waypoint-marker {
-  background: #3B82F6;
-  color: white;
+.start-marker-circle {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background: #10B981;
+  border: 3px solid white;
   border-radius: 50%;
-  width: 25px;
-  height: 25px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  z-index: 1;
+}
+
+.start-marker-flag {
+  position: relative;
+  font-size: 20px;
+  z-index: 2;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+/* Waypoint markers with better visibility */
+.waypoint-marker-container {
+  position: relative;
+  width: 35px;
+  height: 35px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+}
+
+.waypoint-marker-circle {
+  position: absolute;
+  width: 35px;
+  height: 35px;
+  background: #3B82F6;
+  border: 3px solid white;
+  border-radius: 50%;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  z-index: 1;
+}
+
+.waypoint-marker-number {
+  position: relative;
+  color: white;
+  font-size: 14px;
   font-weight: bold;
-  border: 2px solid white;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  z-index: 2;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+}
+
+/* Popup styles */
+.marker-popup {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.popup-actions {
+  margin-top: 8px;
+  text-align: center;
+}
+
+.popup-btn {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.popup-btn-danger {
+  background: #EF4444;
+  color: white;
+}
+
+.popup-btn-danger:hover {
+  background: #DC2626;
 }
 
 /* Form input focus styles */

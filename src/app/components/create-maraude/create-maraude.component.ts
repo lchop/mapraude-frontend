@@ -41,13 +41,14 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
   markers: any[] = [];
   routePolyline: any = null;
   isMapReady = false;
+  isSettingStartPoint = false; // NEW: Mode for setting start point
 
   // Form data with waypoints support
   maraudeData = {
     title: '',
     description: '',
-    startLatitude: 46.603354, // Default to center of France
-    startLongitude: 1.888334,
+    startLatitude: 44.82567400, // Default to center of France
+    startLongitude: -0.55670800,
     startAddress: '',
     waypoints: [] as Waypoint[],
     estimatedDistance: 0,
@@ -85,6 +86,15 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
       this.router.navigate(['/login']);
       return;
     }
+
+    // Set up global functions for popup actions
+    (window as any).removeWaypointFromMap = (waypointId: string) => {
+      this.removeWaypoint(waypointId);
+    };
+
+    (window as any).editStartPoint = () => {
+      this.toggleStartPointMode();
+    };
 
     this.route.params.subscribe(params => {
       if (params['id']) {
@@ -125,9 +135,13 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
         attribution: '© OpenStreetMap contributors'
       }).addTo(this.map);
 
-      // Add click handler for adding waypoints
+      // Add click handler for adding waypoints or setting start point
       this.map.on('click', (e: any) => {
-        this.addWaypoint(e.latlng.lat, e.latlng.lng);
+        if (this.isSettingStartPoint) {
+          this.setStartPoint(e.latlng.lat, e.latlng.lng);
+        } else {
+          this.addWaypoint(e.latlng.lat, e.latlng.lng);
+        }
       });
 
       this.isMapReady = true;
@@ -152,12 +166,16 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
       const response = await firstValueFrom(this.apiService.getMaraude(this.maraudeId));
       const maraude = response.action;
 
+      console.log('🔍 DEBUG - Loaded maraude data:', maraude);
+      console.log('🔍 DEBUG - Waypoints:', maraude.waypoints);
+      console.log('🔍 DEBUG - Start coords:', maraude.startLatitude, maraude.startLongitude);
+
       this.maraudeData = {
         title: maraude.title,
         description: maraude.description || '',
-        startLatitude: maraude.startLatitude || 46.603354,
-        startLongitude: maraude.startLongitude  || 1.888334,
-        startAddress: maraude.startAddress || maraude.address || '',
+        startLatitude: maraude.startLatitude || 44.82567400,
+        startLongitude: maraude.startLongitude || -0.55670800,
+        startAddress: maraude.startAddress || '',
         waypoints: maraude.waypoints || [],
         estimatedDistance: maraude.estimatedDistance || 0,
         estimatedDuration: maraude.estimatedDuration || 0,
@@ -173,8 +191,11 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
         notes: maraude.notes || ''
       };
 
+      console.log('🔍 DEBUG - Processed form data:', this.maraudeData);
+
       // Update map if it's ready
       if (this.isMapReady) {
+        console.log('🔍 DEBUG - Updating map with loaded data');
         this.updateMapMarkers();
         this.centerMapOnRoute();
       }
@@ -185,6 +206,45 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
     } finally {
       this.loading = false;
     }
+  }
+
+  // NEW: Set start point method
+  async setStartPoint(lat: number, lng: number, address?: string) {
+    this.maraudeData.startLatitude = lat;
+    this.maraudeData.startLongitude = lng;
+
+    // Reverse geocode to get address
+    if (!address) {
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
+        );
+        const data = await response.json();
+        if (data && data.display_name) {
+          this.maraudeData.startAddress = data.display_name;
+        }
+      } catch (error) {
+        console.error('Error reverse geocoding start point:', error);
+        this.maraudeData.startAddress = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      }
+    } else {
+      this.maraudeData.startAddress = address;
+    }
+
+    // Exit start point setting mode
+    this.isSettingStartPoint = false;
+
+    // Update map
+    this.updateMapMarkers();
+    this.calculateRoute();
+
+    console.log('Point de départ défini:', { lat, lng, address: this.maraudeData.startAddress });
+  }
+
+  // NEW: Toggle start point setting mode
+  toggleStartPointMode() {
+    this.isSettingStartPoint = !this.isSettingStartPoint;
+    console.log('Mode définition point de départ:', this.isSettingStartPoint ? 'ACTIVÉ' : 'DÉSACTIVÉ');
   }
 
   // Waypoint management methods
@@ -207,11 +267,18 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
   }
 
   removeWaypoint(waypointId: string) {
+    console.log('🔍 DEBUG - Removing waypoint:', waypointId);
+    console.log('🔍 DEBUG - Before removal:', this.maraudeData.waypoints.length, 'waypoints');
+
     this.maraudeData.waypoints = this.maraudeData.waypoints.filter(w => w.id !== waypointId);
+
+    console.log('🔍 DEBUG - After removal:', this.maraudeData.waypoints.length, 'waypoints');
+
     // Reorder remaining waypoints
     this.maraudeData.waypoints.forEach((w, index) => {
       w.order = index;
     });
+
     this.updateMapMarkers();
     this.calculateRoute();
   }
@@ -237,7 +304,14 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
   }
 
   async updateMapMarkers() {
-    if (!this.map) return;
+    if (!this.map) {
+      console.log('🔍 DEBUG - Map not ready, skipping marker update');
+      return;
+    }
+
+    console.log('🔍 DEBUG - Updating map markers');
+    console.log('🔍 DEBUG - Start position:', this.maraudeData.startLatitude, this.maraudeData.startLongitude);
+    console.log('🔍 DEBUG - Waypoints to add:', this.maraudeData.waypoints);
 
     // Clear existing markers
     this.markers.forEach(marker => this.map.removeLayer(marker));
@@ -251,40 +325,86 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
 
     const L = await import('leaflet');
 
-    // Add start point marker
+    // Add start point marker with conditional styling
+    const startMarkerColor = this.isSettingStartPoint ? '#EF4444' : '#10B981'; // Red when setting, green when set
     const startMarker = L.marker([this.maraudeData.startLatitude, this.maraudeData.startLongitude], {
       icon: L.divIcon({
-        html: '<div class="start-marker">🏁</div>',
-        className: 'custom-marker',
-        iconSize: [30, 30]
+        html: `
+          <div style="position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+            <div style="position: absolute; width: 40px; height: 40px; background: ${startMarkerColor}; border: 3px solid white; border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.3); z-index: 1; ${this.isSettingStartPoint ? 'animation: pulse 1.5s infinite;' : ''}"></div>
+            <div style="position: relative; font-size: 20px; z-index: 2; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">🏁</div>
+          </div>
+        `,
+        className: 'custom-start-marker',
+        iconSize: [40, 40],
+        iconAnchor: [20, 20]
       })
     }).addTo(this.map);
 
-    startMarker.bindPopup(`
-      <strong>Point de départ</strong><br>
-      ${this.maraudeData.startAddress || 'Adresse non définie'}
-    `);
+    const startPopupContent = this.isSettingStartPoint
+      ? `
+        <div class="marker-popup">
+          <strong style="color: #EF4444;">Mode: Définition du point de départ</strong><br>
+          Cliquez sur la carte pour définir le point de départ
+        </div>
+      `
+      : `
+        <div class="marker-popup">
+          <strong>Point de départ</strong><br>
+          ${this.maraudeData.startAddress || 'Adresse non définie'}
+          <div class="popup-actions" style="margin-top: 8px;">
+            <button onclick="window.editStartPoint()" class="popup-btn popup-btn-primary" style="background: #3B82F6; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;">
+              Modifier le point de départ
+            </button>
+          </div>
+        </div>
+      `;
+
+    startMarker.bindPopup(startPopupContent);
 
     this.markers.push(startMarker);
+    console.log('🔍 DEBUG - Added start marker');
 
-    // Add waypoint markers
+    // Add waypoint markers with improved visibility
     this.maraudeData.waypoints.forEach((waypoint, index) => {
+      console.log(`🔍 DEBUG - Adding waypoint ${index + 1}:`, waypoint);
+
       const marker = L.marker([waypoint.latitude, waypoint.longitude], {
         icon: L.divIcon({
-          html: `<div class="waypoint-marker">${index + 1}</div>`,
-          className: 'custom-marker',
-          iconSize: [25, 25]
+          html: `
+            <div style="position: relative; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
+              <div style="position: absolute; width: 35px; height: 35px; background: #3B82F6; border: 3px solid white; border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.3); z-index: 1;"></div>
+              <div style="position: relative; color: white; font-size: 14px; font-weight: bold; z-index: 2; text-shadow: 1px 1px 2px rgba(0,0,0,0.7);">${index + 1}</div>
+            </div>
+          `,
+          className: 'custom-waypoint-marker',
+          iconSize: [35, 35],
+          iconAnchor: [17.5, 17.5]
         })
       }).addTo(this.map);
 
       marker.bindPopup(`
-        <strong>${waypoint.name}</strong><br>
-        ${waypoint.address}<br>
-        <button onclick="window.removeWaypoint('${waypoint.id}')" class="btn-sm btn-danger">Supprimer</button>
+        <div class="marker-popup">
+          <strong>${waypoint.name}</strong><br>
+          ${waypoint.address}<br>
+          <div class="popup-actions">
+            <button onclick="window.removeWaypointFromMap('${waypoint.id}')" class="popup-btn popup-btn-danger">
+              Supprimer ce point
+            </button>
+          </div>
+        </div>
       `);
 
       this.markers.push(marker);
     });
+
+    console.log(`🔍 DEBUG - Added ${this.maraudeData.waypoints.length} waypoint markers`);
+
+    // Draw route after markers are added
+    if (this.maraudeData.waypoints.length > 0) {
+      console.log('🔍 DEBUG - Drawing route');
+      this.drawRoute();
+    }
   }
 
   async calculateRoute() {
@@ -380,7 +500,7 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
     }
   }
 
-  // Existing methods adapted for new structure...
+  // FIXED: Submit method with proper waypoint serialization
   async onSubmit() {
     if (!this.validateForm()) {
       return;
@@ -390,11 +510,21 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
     this.error = '';
 
     try {
+      // Create a clean copy of waypoints to ensure proper serialization
+      const cleanWaypoints = this.maraudeData.waypoints.map(wp => ({
+        id: wp.id,
+        latitude: wp.latitude,
+        longitude: wp.longitude,
+        address: wp.address || '',
+        name: wp.name || '',
+        order: wp.order
+      }));
+
       const maraudePayload = {
         title: this.maraudeData.title,
         startLatitude: this.maraudeData.startLatitude,
         startLongitude: this.maraudeData.startLongitude,
-        waypoints: this.maraudeData.waypoints,
+        waypoints: cleanWaypoints,
         estimatedDistance: this.maraudeData.estimatedDistance,
         estimatedDuration: this.maraudeData.estimatedDuration,
         isRecurring: this.maraudeData.isRecurring,
@@ -412,10 +542,16 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
         address: this.maraudeData.startAddress
       };
 
+      console.log('🔍 DEBUG - Payload being sent:', maraudePayload);
+      console.log('🔍 DEBUG - Clean waypoints in payload:', cleanWaypoints);
+      console.log('🔍 DEBUG - Current waypoints in form:', this.maraudeData.waypoints);
+
       if (this.isEditing && this.maraudeId) {
-        await firstValueFrom(this.apiService.updateMaraude(this.maraudeId, maraudePayload));
+        const response = await firstValueFrom(this.apiService.updateMaraude(this.maraudeId, maraudePayload));
+        console.log('🔍 DEBUG - Update response:', response);
       } else {
-        await firstValueFrom(this.apiService.createMaraude(maraudePayload));
+        const response = await firstValueFrom(this.apiService.createMaraude(maraudePayload));
+        console.log('🔍 DEBUG - Create response:', response);
       }
 
       this.router.navigate(['/dashboard']);

@@ -72,9 +72,16 @@
 
 /* Custom marker styles */
 :host ::ng-deep .custom-maraude-marker,
-:host ::ng-deep .custom-merchant-marker {
+:host ::ng-deep .custom-merchant-marker,
+:host ::ng-deep .custom-waypoint-marker,
+:host ::ng-deep .custom-maraude-start-marker {
   background: transparent !important;
   border: none !important;
+}
+
+/* Ensure start markers don't blink */
+:host ::ng-deep .custom-maraude-start-marker {
+  animation: none !important;
 }
 
 :host ::ng-deep .marker-pin {
@@ -104,6 +111,28 @@
   animation: pulse 2s infinite;
   top: 0;
   left: 0;
+}
+
+/* NEW: Waypoint marker styles */
+:host ::ng-deep .waypoint-marker {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+/* Path and coverage area styles */
+:host ::ng-deep .leaflet-interactive {
+  cursor: pointer;
+}
+
+:host ::ng-deep .leaflet-container .leaflet-interactive:hover {
+  opacity: 0.8;
 }
 
 @keyframes pulse {
@@ -200,6 +229,47 @@
   font-size: 12px;
   color: #92400e;
   line-height: 1.4;
+}
+
+/* NEW: Path visualization styles */
+:host ::ng-deep .leaflet-overlay-pane svg {
+  pointer-events: auto;
+}
+
+:host ::ng-deep .leaflet-overlay-pane path {
+  pointer-events: auto;
+}
+
+/* Blinking effect for active/today maraudes */
+:host ::ng-deep .blinking-path {
+  animation: pathBlink 2s infinite;
+}
+
+@keyframes pathBlink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0.3;
+  }
+}
+
+/* Coverage area hover effects */
+:host ::ng-deep .leaflet-overlay-pane circle:hover {
+  opacity: 0.8 !important;
+  fill-opacity: 0.2 !important;
+}
+
+/* Path line hover effects */
+:host ::ng-deep .leaflet-overlay-pane polyline:hover {
+  opacity: 0.8 !important;
+  stroke-width: 4 !important;
+}
+
+/* Override blinking on hover for better UX */
+:host ::ng-deep .leaflet-overlay-pane .blinking-path:hover {
+  animation: none !important;
+  opacity: 0.9 !important;
 }
 
 /* Responsive */

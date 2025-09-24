@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, tap, catchError, throwError } from 'rxjs';
 import { Association } from '../models/association.model';
 import { MaraudeAction, DayOfWeek } from '../models/maraude.model';
 import { Merchant } from '../models/merchant.model.';
@@ -63,53 +63,63 @@ export class ApiService {
   }
 
   createMaraude(maraudeData: {
-  title: string;
-  description?: string;
-  startLatitude: number;  // NEW: specific start coordinates
-  startLongitude: number; // NEW: specific start coordinates
-  startAddress?: string;  // NEW: start address
-  waypoints?: any[];      // NEW: waypoints array
-  estimatedDistance?: number;  // NEW: calculated distance
-  estimatedDuration?: number;  // NEW: calculated duration
-  routePolyline?: string;      // NEW: route visualization data
-  isRecurring: boolean;
-  dayOfWeek?: number | null;
-  scheduledDate?: string | null;
-  startTime: string;
-  endTime?: string;
-  participantsCount?: number;
-  notes?: string;
-  // Backward compatibility
-  latitude?: number;      // Keep for compatibility
-  longitude?: number;     // Keep for compatibility
-  address?: string;       // Keep for compatibility
-}): Observable<{ message: string; action: MaraudeAction }> {
-  const token = localStorage.getItem('maraude_token');
-  console.log('🔐 Création maraude avec waypoints - Token présent:', !!token);
-  console.log('📊 Données maraude envoyées:', maraudeData);
+    title: string;
+    description?: string;
+    startLatitude: number;
+    startLongitude: number;
+    startAddress?: string;
+    waypoints?: any[];
+    estimatedDistance?: number;
+    estimatedDuration?: number;
+    routePolyline?: string;
+    isRecurring: boolean;
+    dayOfWeek?: number | null;
+    scheduledDate?: string | null;
+    startTime: string;
+    endTime?: string;
+    participantsCount?: number;
+    notes?: string;
+    // Backward compatibility
+    latitude?: number;
+    longitude?: number;
+    address?: string;
+  }): Observable<{ message: string; action: MaraudeAction }> {
+    const token = localStorage.getItem('maraude_token');
+    console.log('🔐 Création maraude avec waypoints - Token présent:', !!token);
+    console.log('📊 Données maraude envoyées:', maraudeData);
+    console.log('🎯 Waypoints dans les données:', maraudeData.waypoints);
 
-  if (!token) {
-    throw new Error('Token d\'authentification manquant');
+    if (!token) {
+      return throwError(() => new Error('Token d\'authentification manquant'));
+    }
+
+    return this.http.post<{ message: string; action: MaraudeAction }>(
+      `${this.baseUrl}/maraudes`,
+      maraudeData,
+      { headers: this.getAuthHeaders() }
+    ).pipe(
+      tap(response => {
+        console.log('📦 Réponse création maraude:', response);
+        console.log('🎯 Waypoints dans la réponse:', response?.action?.waypoints);
+      }),
+      catchError(error => {
+        console.error('❌ Erreur création maraude:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
-  return this.http.post<{ message: string; action: MaraudeAction }>(
-    `${this.baseUrl}/maraudes`,
-    maraudeData,
-    { headers: this.getAuthHeaders() }
-  );
-  }
-
-  // Updated update method with waypoint support
+  // FIXED: updateMaraude method with proper logging and error handling
   updateMaraude(id: string, maraudeData: {
     title?: string;
     description?: string;
-    startLatitude?: number;     // NEW
-    startLongitude?: number;    // NEW
-    startAddress?: string;      // NEW
-    waypoints?: any[];          // NEW
-    estimatedDistance?: number; // NEW
-    estimatedDuration?: number; // NEW
-    routePolyline?: string;     // NEW
+    startLatitude?: number;
+    startLongitude?: number;
+    startAddress?: string;
+    waypoints?: any[];
+    estimatedDistance?: number;
+    estimatedDuration?: number;
+    routePolyline?: string;
     isRecurring?: boolean;
     dayOfWeek?: number | null;
     scheduledDate?: string | null;
@@ -126,10 +136,27 @@ export class ApiService {
     longitude?: number;
     address?: string;
   }): Observable<{ message: string; action: MaraudeAction }> {
+
+    console.log('🔄 API Service - Updating maraude ID:', id);
+    console.log('📤 API Service - Update payload:', maraudeData);
+    console.log('🎯 API Service - Waypoints in update payload:', maraudeData.waypoints);
+    console.log('📊 API Service - Waypoints count:', maraudeData.waypoints?.length || 0);
+
     return this.http.put<{ message: string; action: MaraudeAction }>(
       `${this.baseUrl}/maraudes/${id}`,
       maraudeData,
       { headers: this.getAuthHeaders() }
+    ).pipe(
+      tap(response => {
+        console.log('✅ API Service - Update successful:', response);
+        console.log('🎯 API Service - Updated waypoints in response:', response?.action?.waypoints);
+        console.log('📊 API Service - Updated waypoints count:', response?.action?.waypoints?.length || 0);
+      }),
+      catchError(error => {
+        console.error('❌ API Service - Update error:', error);
+        console.error('📤 API Service - Failed payload was:', maraudeData);
+        return throwError(() => error);
+      })
     );
   }
 
