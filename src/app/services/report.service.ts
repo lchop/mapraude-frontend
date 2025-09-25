@@ -3,12 +3,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { DistributionType, MaraudeReport } from '../models/report.model';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ReportService {
-  private baseUrl = 'http://localhost:3000/api/reports';
+  private baseUrl = environment.apiUrl + '/reports';
 
   constructor(private http: HttpClient) {}
 
@@ -133,6 +134,8 @@ export class ReportService {
     params,
     headers: this.getAuthHeaders()
   });
+
+
 
 
 }

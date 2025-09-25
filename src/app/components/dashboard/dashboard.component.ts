@@ -8,6 +8,19 @@ import { ReportService } from '../../services/report.service';
 import { User } from '../../models/user.model';
 import { MaraudeAction } from '../../models/maraude.model';
 
+interface DashboardStats {
+  totalMaraudes: number;
+  completedMaraudes: number;
+  activeMaraudes: number;
+  totalBeneficiaries: number;
+  totalReports: number;
+  validatedReports: number;
+  pendingReports: number;
+  draftReports: number;
+  avgBeneficiariesPerReport: number;
+  totalVolunteers: number;
+}
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -19,13 +32,17 @@ export class DashboardComponent implements OnInit {
   currentUser: User | null = null;
   myMaraudes: MaraudeAction[] = [];
   recentReports: any[] = [];
-  stats = {
+  stats: DashboardStats = {
     totalMaraudes: 0,
-    activeMaraudes: 0,
     completedMaraudes: 0,
+    activeMaraudes: 0,
     totalBeneficiaries: 0,
     totalReports: 0,
-    pendingReports: 0
+    validatedReports: 0,
+    pendingReports: 0,
+    draftReports: 0,
+    avgBeneficiariesPerReport: 0,
+    totalVolunteers: 0
   };
   loading = true;
 
@@ -48,17 +65,32 @@ export class DashboardComponent implements OnInit {
   }
 
   loadDashboardData() {
-    // Charger les maraudes et rapports en parallèle
+    // Charger les données en parallèle
     Promise.all([
+      this.loadStats(), // NOUVEAU : utilise l'endpoint dédié
       this.loadMaraudes(),
       this.loadReports()
     ]).then(() => {
-      this.calculateStats();
       this.loading = false;
     }).catch(error => {
       console.error('Erreur lors du chargement des données:', error);
       this.loading = false;
     });
+  }
+
+  // NOUVEAU : Charger les vraies statistiques depuis l'endpoint dédié
+  private async loadStats() {
+    try {
+      const response = await firstValueFrom(
+        this.apiService.getDashboardStats() // Nouvelle méthode à ajouter
+      );
+      this.stats = response?.stats || this.stats;
+      console.log('Stats chargées:', this.stats);
+    } catch (error) {
+      console.error('Erreur chargement stats:', error);
+      // Fallback sur l'ancien calcul si l'endpoint échoue
+      this.calculateStatsFromMaraudesAndReports();
+    }
   }
 
   private async loadMaraudes() {
@@ -77,8 +109,7 @@ export class DashboardComponent implements OnInit {
   private async loadReports() {
     try {
       const response = await firstValueFrom(this.reportService.getReports({
-        limit: 10,
-        // Le backend filtre automatiquement par association selon l'utilisateur connecté
+        limit: 10
       }));
       this.recentReports = response?.reports || [];
     } catch (error) {
@@ -87,8 +118,11 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-  calculateStats() {
-    // Stats maraudes
+  // BACKUP : Calcul local si l'endpoint stats n'est pas disponible
+  private calculateStatsFromMaraudesAndReports() {
+    console.log('Fallback: calcul des stats localement');
+
+    // Stats maraudes (garde l'ancien calcul)
     this.stats.totalMaraudes = this.myMaraudes.length;
     this.stats.activeMaraudes = this.myMaraudes.filter(m =>
       m.status === 'planned' || m.status === 'in_progress'
@@ -96,12 +130,21 @@ export class DashboardComponent implements OnInit {
     this.stats.completedMaraudes = this.myMaraudes.filter(m =>
       m.status === 'completed'
     ).length;
-    this.stats.totalBeneficiaries = this.myMaraudes.reduce((sum, m) =>
-      sum + (m.beneficiariesHelped || 0), 0
-    );
 
-    // Stats rapports
+    // Stats rapports (calcul depuis les rapports chargés)
     this.stats.totalReports = this.recentReports.length;
+    this.stats.totalBeneficiaries = this.recentReports.reduce((sum, report) =>
+      sum + (report.beneficiariesCount || 0), 0
+    );
+    this.stats.totalVolunteers = this.recentReports.reduce((sum, report) =>
+      sum + (report.volunteersCount || 0), 0
+    );
+    this.stats.validatedReports = this.recentReports.filter(r =>
+      r.status === 'validated'
+    ).length;
+    this.stats.pendingReports = this.recentReports.filter(r =>
+      r.status === 'submitted'
+    ).length;
   }
 
   logout() {
@@ -109,7 +152,7 @@ export class DashboardComponent implements OnInit {
     this.router.navigate(['/']);
   }
 
-  // ===== NAVIGATION MARAUDES =====
+  // ===== NAVIGATION =====
   navigateToAddMaraude() {
     this.router.navigate(['/dashboard/add-maraude']);
   }
@@ -118,13 +161,12 @@ export class DashboardComponent implements OnInit {
     this.router.navigate(['/dashboard/edit-maraude', maraudeId]);
   }
 
-  // ===== NAVIGATION RAPPORTS (MISE À JOUR) =====
   navigateToReports() {
-    this.router.navigate(['/reports']); // Liste des rapports
+    this.router.navigate(['/reports']);
   }
 
   navigateToAddReport() {
-    this.router.navigate(['/reports/create']); // ← Changé de '/reports/new' vers '/reports/create'
+    this.router.navigate(['/reports/create']);
   }
 
   navigateToEditReport(reportId: string) {
@@ -132,7 +174,6 @@ export class DashboardComponent implements OnInit {
   }
 
   navigateToViewReport(reportId: string) {
-    // TODO: Créer une route pour voir un rapport
     this.router.navigate(['/reports', reportId]);
   }
 

@@ -4,12 +4,13 @@ import { Observable, tap, catchError, throwError } from 'rxjs';
 import { Association } from '../models/association.model';
 import { MaraudeAction, DayOfWeek } from '../models/maraude.model';
 import { Merchant } from '../models/merchant.model.';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ApiService {
-  private baseUrl = 'http://localhost:3000/api';
+  private baseUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 
@@ -235,5 +236,19 @@ export class ApiService {
       radius: number,
       count: number
     }>(`${this.baseUrl}/merchants/nearby/${lat}/${lng}?radius=${radius}`);
+  }
+
+  getDashboardStats(): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}/reports/dashboard/stats`, {
+    headers: this.getAuthHeaders() // ← Ajouter les headers d'auth
+  }).pipe(
+    tap(response => {
+      console.log('📊 Dashboard stats loaded:', response);
+    }),
+    catchError(error => {
+      console.error('❌ Dashboard stats error:', error);
+      return throwError(() => error);
+    })
+  );
   }
 }
