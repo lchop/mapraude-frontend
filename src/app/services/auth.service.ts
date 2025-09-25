@@ -9,7 +9,7 @@ import { environment } from '../../environments/environment';
   providedIn: 'root'
 })
 export class AuthService {
-  private baseUrl = environment.apiUrl + '/auth';
+  private baseUrl = '/api/auth';
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   private tokenKey = 'maraude_token';
 
