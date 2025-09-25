@@ -440,7 +440,14 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
   }
 
   async drawRoute() {
-    if (!this.map || this.maraudeData.waypoints.length === 0) return;
+    if (!this.map || this.maraudeData.waypoints.length === 0) {
+      // NO waypoints - ensure no route is drawn
+      if (this.routePolyline) {
+        this.map.removeLayer(this.routePolyline);
+        this.routePolyline = null;
+      }
+      return;
+    }
 
     const L = await import('leaflet');
 
@@ -450,12 +457,20 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
       ...this.maraudeData.waypoints.map(w => [w.latitude, w.longitude] as [number, number])
     ];
 
-    // Draw polyline
-    this.routePolyline = L.polyline(routeCoords, {
-      color: '#3B82F6',
-      weight: 4,
-      opacity: 0.7
-    }).addTo(this.map);
+    // Remove old polyline first
+    if (this.routePolyline) {
+      this.map.removeLayer(this.routePolyline);
+      this.routePolyline = null;
+    }
+
+    // Only create new polyline if we have waypoints
+    if (routeCoords.length > 1) {
+      this.routePolyline = L.polyline(routeCoords, {
+        color: '#3B82F6',
+        weight: 4,
+        opacity: 0.7
+      }).addTo(this.map);
+    }
   }
 
   centerMapOnRoute() {
