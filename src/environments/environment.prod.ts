@@ -1,4 +1,4 @@
 export const environment = {
-  production: true,
-  apiUrl: '/api'  // URL relative car même serveur
+  production: false,
+  apiUrl: 'https://mapraude-backend-production.up.railway.app/api'
 };
