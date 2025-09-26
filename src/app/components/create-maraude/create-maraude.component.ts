@@ -41,7 +41,7 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
   markers: any[] = [];
   routePolyline: any = null;
   isMapReady = false;
-  isSettingStartPoint = false; // NEW: Mode for setting start point
+  isSettingStartPoint = false;
 
   // Form data with waypoints support
   maraudeData = {
@@ -79,6 +79,25 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
     private route: ActivatedRoute
   ) {}
 
+  // -------- Helpers --------
+  private normalizeWaypoints(input: any): Waypoint[] {
+    try {
+      if (Array.isArray(input)) return input as Waypoint[];
+      if (typeof input === 'string') {
+        const parsed = JSON.parse(input);
+        return Array.isArray(parsed) ? parsed : [];
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  }
+
+  private async getLeaflet() {
+    const Leaflet = await import('leaflet');
+    return (Leaflet as any).default ?? Leaflet;
+  }
+
   ngOnInit() {
     this.currentUser = this.authService.getCurrentUser();
 
@@ -86,15 +105,6 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
       this.router.navigate(['/login']);
       return;
     }
-
-    // Set up global functions for popup actions
-    (window as any).removeWaypointFromMap = (waypointId: string) => {
-      this.removeWaypoint(waypointId);
-    };
-
-    (window as any).editStartPoint = () => {
-      this.toggleStartPointMode();
-    };
 
     this.route.params.subscribe(params => {
       if (params['id']) {
@@ -114,15 +124,13 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
 
   async loadMap() {
     try {
-      // Check if mapContainer is available
-      if (!this.mapContainer || !this.mapContainer.nativeElement) {
+      if (!this.mapContainer?.nativeElement) {
         console.error('Map container not found');
         this.error = 'Erreur lors de l\'initialisation de la carte';
         return;
       }
 
-      // Dynamically import Leaflet
-      const L = await import('leaflet');
+      const L = await this.getLeaflet();
 
       // Initialize map
       this.map = L.map(this.mapContainer.nativeElement).setView(
@@ -144,10 +152,27 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
         }
       });
 
+      // Delegate popup button clicks (CSP-safe)
+      this.map.on('popupopen', (evt: any) => {
+        const container: HTMLElement | null = evt?.popup?.getElement?.();
+        if (!container) return;
+
+        const editBtn = container.querySelector('[data-action="edit-start"]');
+        if (editBtn) {
+          editBtn.addEventListener('click', () => this.toggleStartPointMode(), { once: true });
+        }
+
+        container.querySelectorAll('[data-action="remove-waypoint"]').forEach((btn) => {
+          const id = (btn as HTMLElement).getAttribute('data-id');
+          if (!id) return;
+          btn.addEventListener('click', () => this.removeWaypoint(id!), { once: true });
+        });
+      });
+
       this.isMapReady = true;
 
       // Update markers if we have data
-      if (this.maraudeData.waypoints.length > 0 || this.isEditing) {
+      if ((this.maraudeData.waypoints?.length ?? 0) > 0 || this.isEditing) {
         this.updateMapMarkers();
         this.centerMapOnRoute();
       }
@@ -164,38 +189,35 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
     this.loading = true;
     try {
       const response = await firstValueFrom(this.apiService.getMaraude(this.maraudeId));
-      const maraude = response.action;
+      const maraude = response.action as Partial<MaraudeAction> & any;
 
-      console.log('🔍 DEBUG - Loaded maraude data:', maraude);
-      console.log('🔍 DEBUG - Waypoints:', maraude.waypoints);
-      console.log('🔍 DEBUG - Start coords:', maraude.startLatitude, maraude.startLongitude);
+      // Normalize waypoints to a proper array
+      const normalizedWaypoints = this.normalizeWaypoints(maraude.waypoints);
 
       this.maraudeData = {
-        title: maraude.title,
+        title: maraude.title ?? '',
         description: maraude.description || '',
-        startLatitude: maraude.startLatitude || 44.82567400,
-        startLongitude: maraude.startLongitude || -0.55670800,
+        startLatitude: maraude.startLatitude ?? 44.82567400,
+        startLongitude: maraude.startLongitude ?? -0.55670800,
         startAddress: maraude.startAddress || '',
-        waypoints: maraude.waypoints || [],
+        waypoints: normalizedWaypoints,
         estimatedDistance: maraude.estimatedDistance || 0,
         estimatedDuration: maraude.estimatedDuration || 0,
-        isRecurring: maraude.isRecurring,
+        isRecurring: !!maraude.isRecurring,
         dayOfWeek: maraude.dayOfWeek || 1,
-        scheduledDate: maraude.scheduledDate ?
-          (maraude.scheduledDate instanceof Date ?
-            maraude.scheduledDate.toISOString().split('T')[0] :
-            maraude.scheduledDate) : '',
-        startTime: maraude.startTime,
+        scheduledDate: maraude.scheduledDate
+          ? (maraude.scheduledDate instanceof Date
+              ? maraude.scheduledDate.toISOString().split('T')[0]
+              : maraude.scheduledDate)
+          : '',
+        startTime: maraude.startTime || '',
         endTime: maraude.endTime || '',
         participantsCount: maraude.participantsCount || 0,
         notes: maraude.notes || ''
       };
 
-      console.log('🔍 DEBUG - Processed form data:', this.maraudeData);
-
       // Update map if it's ready
       if (this.isMapReady) {
-        console.log('🔍 DEBUG - Updating map with loaded data');
         this.updateMapMarkers();
         this.centerMapOnRoute();
       }
@@ -220,8 +242,10 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
           `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
         );
         const data = await response.json();
-        if (data && data.display_name) {
+        if (data?.display_name) {
           this.maraudeData.startAddress = data.display_name;
+        } else {
+          this.maraudeData.startAddress = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
         }
       } catch (error) {
         console.error('Error reverse geocoding start point:', error);
@@ -237,14 +261,11 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
     // Update map
     this.updateMapMarkers();
     this.calculateRoute();
-
-    console.log('Point de départ défini:', { lat, lng, address: this.maraudeData.startAddress });
   }
 
   // NEW: Toggle start point setting mode
   toggleStartPointMode() {
     this.isSettingStartPoint = !this.isSettingStartPoint;
-    console.log('Mode définition point de départ:', this.isSettingStartPoint ? 'ACTIVÉ' : 'DÉSACTIVÉ');
   }
 
   // Waypoint management methods
@@ -267,12 +288,7 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
   }
 
   removeWaypoint(waypointId: string) {
-    console.log('🔍 DEBUG - Removing waypoint:', waypointId);
-    console.log('🔍 DEBUG - Before removal:', this.maraudeData.waypoints.length, 'waypoints');
-
     this.maraudeData.waypoints = this.maraudeData.waypoints.filter(w => w.id !== waypointId);
-
-    console.log('🔍 DEBUG - After removal:', this.maraudeData.waypoints.length, 'waypoints');
 
     // Reorder remaining waypoints
     this.maraudeData.waypoints.forEach((w, index) => {
@@ -292,7 +308,7 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
 
     // Swap waypoints
     [this.maraudeData.waypoints[index], this.maraudeData.waypoints[newIndex]] =
-    [this.maraudeData.waypoints[newIndex], this.maraudeData.waypoints[index]];
+      [this.maraudeData.waypoints[newIndex], this.maraudeData.waypoints[index]];
 
     // Update order
     this.maraudeData.waypoints.forEach((w, i) => {
@@ -304,14 +320,7 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
   }
 
   async updateMapMarkers() {
-    if (!this.map) {
-      console.log('🔍 DEBUG - Map not ready, skipping marker update');
-      return;
-    }
-
-    console.log('🔍 DEBUG - Updating map markers');
-    console.log('🔍 DEBUG - Start position:', this.maraudeData.startLatitude, this.maraudeData.startLongitude);
-    console.log('🔍 DEBUG - Waypoints to add:', this.maraudeData.waypoints);
+    if (!this.map) return;
 
     // Clear existing markers
     this.markers.forEach(marker => this.map.removeLayer(marker));
@@ -323,10 +332,10 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
       this.routePolyline = null;
     }
 
-    const L = await import('leaflet');
+    const L = await this.getLeaflet();
 
-    // Add start point marker with conditional styling
-    const startMarkerColor = this.isSettingStartPoint ? '#EF4444' : '#10B981'; // Red when setting, green when set
+    // Add start point marker
+    const startMarkerColor = this.isSettingStartPoint ? '#EF4444' : '#10B981';
     const startMarker = L.marker([this.maraudeData.startLatitude, this.maraudeData.startLongitude], {
       icon: L.divIcon({
         html: `
@@ -353,7 +362,7 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
           <strong>Point de départ</strong><br>
           ${this.maraudeData.startAddress || 'Adresse non définie'}
           <div class="popup-actions" style="margin-top: 8px;">
-            <button onclick="window.editStartPoint()" class="popup-btn popup-btn-primary" style="background: #3B82F6; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;">
+            <button data-action="edit-start" class="popup-btn popup-btn-primary" style="background: #3B82F6; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;">
               Modifier le point de départ
             </button>
           </div>
@@ -361,14 +370,13 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
       `;
 
     startMarker.bindPopup(startPopupContent);
-
     this.markers.push(startMarker);
-    console.log('🔍 DEBUG - Added start marker');
 
-    // Add waypoint markers with improved visibility
-    this.maraudeData.waypoints.forEach((waypoint, index) => {
-      console.log(`🔍 DEBUG - Adding waypoint ${index + 1}:`, waypoint);
+    // Ensure waypoints is an array
+    const waypoints = this.normalizeWaypoints(this.maraudeData.waypoints);
 
+    // Add waypoint markers
+    waypoints.forEach((waypoint, index) => {
       const marker = L.marker([waypoint.latitude, waypoint.longitude], {
         icon: L.divIcon({
           html: `
@@ -385,10 +393,10 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
 
       marker.bindPopup(`
         <div class="marker-popup">
-          <strong>${waypoint.name}</strong><br>
-          ${waypoint.address}<br>
+          <strong>${waypoint.name ?? `Point ${index + 1}`}</strong><br>
+          ${waypoint.address ?? `${waypoint.latitude.toFixed(6)}, ${waypoint.longitude.toFixed(6)}`}<br>
           <div class="popup-actions">
-            <button onclick="window.removeWaypointFromMap('${waypoint.id}')" class="popup-btn popup-btn-danger">
+            <button data-action="remove-waypoint" data-id="${waypoint.id}" class="popup-btn popup-btn-danger">
               Supprimer ce point
             </button>
           </div>
@@ -398,28 +406,25 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
       this.markers.push(marker);
     });
 
-    console.log(`🔍 DEBUG - Added ${this.maraudeData.waypoints.length} waypoint markers`);
-
     // Draw route after markers are added
-    if (this.maraudeData.waypoints.length > 0) {
-      console.log('🔍 DEBUG - Drawing route');
-      this.drawRoute();
+    if (waypoints.length > 0) {
+      await this.drawRoute();
     }
   }
 
   async calculateRoute() {
-    if (this.maraudeData.waypoints.length === 0) {
+    const waypoints = this.normalizeWaypoints(this.maraudeData.waypoints);
+    if (waypoints.length === 0) {
       this.maraudeData.estimatedDistance = 0;
       this.maraudeData.estimatedDuration = 0;
       return;
     }
 
     try {
-      // Simple distance calculation (you could integrate with routing service like OpenRouteService)
       let totalDistance = 0;
       let lastPoint = { lat: this.maraudeData.startLatitude, lng: this.maraudeData.startLongitude };
 
-      for (const waypoint of this.maraudeData.waypoints) {
+      for (const waypoint of waypoints) {
         const distance = this.calculateDistance(
           lastPoint.lat, lastPoint.lng,
           waypoint.latitude, waypoint.longitude
@@ -431,17 +436,16 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
       this.maraudeData.estimatedDistance = Math.round(totalDistance * 100) / 100;
       this.maraudeData.estimatedDuration = Math.round(totalDistance * 12); // Rough estimate: 5 km/h walking speed
 
-      // Draw route on map
       await this.drawRoute();
-
     } catch (error) {
       console.error('Error calculating route:', error);
     }
   }
 
   async drawRoute() {
-    if (!this.map || this.maraudeData.waypoints.length === 0) {
-      // NO waypoints - ensure no route is drawn
+    const waypoints = this.normalizeWaypoints(this.maraudeData.waypoints);
+
+    if (!this.map || waypoints.length === 0) {
       if (this.routePolyline) {
         this.map.removeLayer(this.routePolyline);
         this.routePolyline = null;
@@ -449,21 +453,18 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    const L = await import('leaflet');
+    const L = await this.getLeaflet();
 
-    // Create route coordinates with proper typing
     const routeCoords: [number, number][] = [
       [this.maraudeData.startLatitude, this.maraudeData.startLongitude],
-      ...this.maraudeData.waypoints.map(w => [w.latitude, w.longitude] as [number, number])
+      ...waypoints.map(w => [w.latitude, w.longitude] as [number, number])
     ];
 
-    // Remove old polyline first
     if (this.routePolyline) {
       this.map.removeLayer(this.routePolyline);
       this.routePolyline = null;
     }
 
-    // Only create new polyline if we have waypoints
     if (routeCoords.length > 1) {
       this.routePolyline = L.polyline(routeCoords, {
         color: '#3B82F6',
@@ -476,9 +477,11 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
   centerMapOnRoute() {
     if (!this.map) return;
 
+    const waypoints = this.normalizeWaypoints(this.maraudeData.waypoints);
+
     const allPoints: [number, number][] = [
       [this.maraudeData.startLatitude, this.maraudeData.startLongitude],
-      ...this.maraudeData.waypoints.map(w => [w.latitude, w.longitude] as [number, number])
+      ...waypoints.map(w => [w.latitude, w.longitude] as [number, number])
     ];
 
     if (allPoints.length > 1) {
@@ -507,7 +510,7 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
       );
       const data = await response.json();
 
-      if (data && data.display_name) {
+      if (data?.display_name) {
         waypoint.address = data.display_name;
       }
     } catch (error) {
@@ -515,18 +518,16 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
     }
   }
 
-  // FIXED: Submit method with proper waypoint serialization
+  // Submit method with proper waypoint serialization
   async onSubmit() {
-    if (!this.validateForm()) {
-      return;
-    }
+    if (!this.validateForm()) return;
 
     this.saving = true;
     this.error = '';
 
     try {
-      // Create a clean copy of waypoints to ensure proper serialization
-      const cleanWaypoints = this.maraudeData.waypoints.map(wp => ({
+      const waypoints = this.normalizeWaypoints(this.maraudeData.waypoints);
+      const cleanWaypoints = waypoints.map(wp => ({
         id: wp.id,
         latitude: wp.latitude,
         longitude: wp.longitude,
@@ -557,20 +558,13 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
         address: this.maraudeData.startAddress
       };
 
-      console.log('🔍 DEBUG - Payload being sent:', maraudePayload);
-      console.log('🔍 DEBUG - Clean waypoints in payload:', cleanWaypoints);
-      console.log('🔍 DEBUG - Current waypoints in form:', this.maraudeData.waypoints);
-
       if (this.isEditing && this.maraudeId) {
-        const response = await firstValueFrom(this.apiService.updateMaraude(this.maraudeId, maraudePayload));
-        console.log('🔍 DEBUG - Update response:', response);
+        await firstValueFrom(this.apiService.updateMaraude(this.maraudeId, maraudePayload));
       } else {
-        const response = await firstValueFrom(this.apiService.createMaraude(maraudePayload));
-        console.log('🔍 DEBUG - Create response:', response);
+        await firstValueFrom(this.apiService.createMaraude(maraudePayload));
       }
 
       this.router.navigate(['/dashboard']);
-
     } catch (error: any) {
       console.error('Erreur lors de la sauvegarde:', error);
       this.error = error.error?.error || 'Erreur lors de la sauvegarde';
@@ -605,7 +599,6 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
     return true;
   }
 
-  // Other existing methods...
   onRecurringChange() {
     if (this.maraudeData.isRecurring) {
       this.maraudeData.scheduledDate = '';
@@ -643,8 +636,7 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
         `https://nominatim.openstreetmap.org/reverse?lat=${this.maraudeData.startLatitude}&lon=${this.maraudeData.startLongitude}&format=json`
       );
       const data = await response.json();
-
-      if (data && data.display_name) {
+      if (data?.display_name) {
         this.maraudeData.startAddress = data.display_name;
       }
     } catch (error) {
@@ -662,22 +654,16 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
   }
 
   async deleteMaraude() {
-    if (!this.isEditing || !this.maraudeId) {
-      return;
-    }
+    if (!this.isEditing || !this.maraudeId) return;
 
     const confirmed = confirm(`Êtes-vous sûr de vouloir supprimer la maraude "${this.maraudeData.title}" ?\n\nCette action est irréversible.`);
-
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
 
     this.deleting = true;
     this.error = '';
 
     try {
       await firstValueFrom(this.apiService.deleteMaraude(this.maraudeId));
-      console.log('Maraude supprimée avec succès');
       this.router.navigate(['/dashboard']);
     } catch (error: any) {
       console.error('Erreur lors de la suppression:', error);
@@ -688,13 +674,10 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
   }
 
   canDelete(): boolean {
-    if (!this.isEditing || !this.currentUser) {
-      return false;
-    }
+    if (!this.isEditing || !this.currentUser) return false;
     return ['admin', 'coordinator'].includes(this.currentUser.role);
   }
 
-  // TrackBy function for waypoints
   trackByWaypoint(index: number, waypoint: Waypoint): string {
     return waypoint.id;
   }
