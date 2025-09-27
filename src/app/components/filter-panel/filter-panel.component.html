@@ -17,14 +17,30 @@
   </div>
 
   <!-- Maraude filters -->
-  <div *ngIf="filters.showMaraudes" class="mb-6">
-    <label class="block text-sm font-medium text-gray-700 mb-2">Statut des maraudes</label>
-    <select [(ngModel)]="filters.maraudeStatus" (change)="onFilterChange()" class="input-select">
-      <option value="">Tous les statuts</option>
-      <option value="planned">Planifiées</option>
-      <option value="in_progress">En cours</option>
-      <option value="completed">Terminées</option>
-    </select>
+  <div *ngIf="filters.showMaraudes" class="mb-6 space-y-4">
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-2">Statut des maraudes</label>
+      <select [(ngModel)]="filters.maraudeStatus" (change)="onFilterChange()" class="input-select">
+        <option value="">Tous les statuts</option>
+        <option value="planned">Planifiées</option>
+        <option value="in_progress">En cours</option>
+        <option value="completed">Terminées</option>
+        <option value="cancelled">Annulées</option>
+      </select>
+    </div>
+
+    <!-- Day of week filter (default = today) -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-2">Jour de la semaine</label>
+      <select [(ngModel)]="filters.maraudeDay" (change)="onFilterChange()" class="input-select">
+        <option *ngFor="let d of days" [value]="d.value">
+          {{ d.name }}
+        </option>
+      </select>
+      <p class="text-xs text-gray-500 mt-1">
+        Par défaut : aujourd'hui ({{ currentDayName }}).
+      </p>
+    </div>
   </div>
 
   <!-- Merchant filters -->
@@ -41,8 +57,8 @@
     </select>
   </div>
 
-  <!-- Radius filter -->
-  <!-- <div>
+  <!-- Radius filter (optionnel)
+  <div>
     <label class="block text-sm font-medium text-gray-700 mb-2">
       Rayon de recherche: {{filters.radius}} km
     </label>
