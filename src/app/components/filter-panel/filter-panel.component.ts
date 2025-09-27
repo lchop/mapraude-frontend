@@ -1,54 +1,105 @@
 import { Component, EventEmitter, Output } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { DAYS_OF_WEEK } from '../../models/maraude.model'; // ajustez le chemin si besoin
+import { FormsModule } from '@angular/forms';
 
-interface FilterState {
+// Adjust the import path to where you define your days list
+// Expected shape: export const DAYS_OF_WEEK = [{ value:1, name:'Lundi' }, ... , { value:7, name:'Dimanche' }];
+import { DAYS_OF_WEEK } from '../../models/maraude.model';
+
+export interface FilterState {
   showMaraudes: boolean;
   showMerchants: boolean;
   maraudeStatus: string;
   merchantCategory: string;
   radius: number;
-  maraudeDay: number; // 1 = Lundi … 7 = Dimanche
+  selectedDays: number[]; // Mon=1 … Sun=7; empty => no day filter
 }
 
 @Component({
   standalone: true,
   selector: 'app-filter-panel',
   templateUrl: './filter-panel.component.html',
-  imports: [FormsModule, CommonModule],
-  styleUrls: ['./filter-panel.component.css']
+  styleUrls: ['./filter-panel.component.css'],
+  imports: [CommonModule, FormsModule]
 })
 export class FilterPanelComponent {
   @Output() filtersChanged = new EventEmitter<FilterState>();
 
-  // Exposé au template
-  days = DAYS_OF_WEEK;
+  days = DAYS_OF_WEEK; // [{ value:1, name:'Lundi' }, ...]
+  private dayNameByValue = new Map<number, string>(this.days.map(d => [d.value, d.name]));
 
-  // Map pour retrouver rapidement le nom du jour
-  private dayNameByValue = new Map(this.days.map(d => [d.value, d.name]));
-
-  // Calcule le jour courant (JS: 0=dimanche … 6=samedi) -> 1=lundi … 7=dimanche
-  private getCurrentDayOfWeek(): number {
-    const js = new Date().getDay(); // 0..6
-    return js === 0 ? 7 : js;       // 1..7
+  private getTodayNumber(): number {
+    const js = new Date().getDay(); // 0=Sun … 6=Sat
+    return js === 0 ? 7 : js;
   }
 
+  // Initial filter state
   filters: FilterState = {
     showMaraudes: true,
     showMerchants: true,
     maraudeStatus: '',
     merchantCategory: '',
     radius: 10,
-    maraudeDay: this.getCurrentDayOfWeek()
+    selectedDays: [this.getTodayNumber()]
   };
 
-  // Getter utilisé par le template (évite les fonctions fléchées en interpolation)
-  get currentDayName(): string {
-    return this.dayNameByValue.get(this.filters.maraudeDay) ?? '';
+  // ---- UI helpers ----
+  shortLabel(dayValue: number): string {
+    switch (dayValue) {
+      case 1: return 'L';
+      case 2: return 'Ma';
+      case 3: return 'Me';
+      case 4: return 'Je';
+      case 5: return 'Ve';
+      case 6: return 'Sa';
+      case 7: return 'Di';
+      default: return '';
+    }
   }
 
-  onFilterChange() {
-    this.filtersChanged.emit(this.filters);
+  isSelected(dayValue: number): boolean {
+    return this.filters.selectedDays.includes(dayValue);
+  }
+
+  // ---- Actions ----
+  toggleDay(dayValue: number) {
+    const idx = this.filters.selectedDays.indexOf(dayValue);
+    if (idx >= 0) {
+      this.filters.selectedDays.splice(idx, 1);
+    } else {
+      this.filters.selectedDays.push(dayValue);
+      // Keep a consistent order (1..7) for display
+      this.filters.selectedDays.sort((a, b) => a - b);
+    }
+    this.emit();
+  }
+
+  selectAllDays() {
+    this.filters.selectedDays = [1, 2, 3, 4, 5, 6, 7];
+    this.emit();
+  }
+
+  clearDays() {
+    this.filters.selectedDays = []; // means "no day filter"
+    this.emit();
+  }
+
+  selectToday() {
+    this.filters.selectedDays = [this.getTodayNumber()];
+    this.emit();
+  }
+
+  emit() {
+    // Emit a shallow copy to avoid consumers mutating our internal state
+    this.filtersChanged.emit({ ...this.filters, selectedDays: [...this.filters.selectedDays] });
+  }
+
+  // ---- Safe label for template ----
+  get selectedDaysLabel(): string {
+    const sel = this.filters?.selectedDays ?? [];
+    if (sel.length === 0) return 'Tous les jours';
+    return sel
+      .map(v => this.dayNameByValue.get(v) ?? `Jour ${v}`)
+      .join(', ');
   }
 }

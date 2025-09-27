@@ -7,7 +7,16 @@ import { MapViewComponent } from '../../map-view/map-view.component';
 
 import { ApiService } from '../../../services/api.service';
 import { MaraudeAction } from '../../../models/maraude.model';
-import { Merchant } from '../../../models/merchant.model.';
+import { Merchant } from '../../../models/merchant.model.'; // keep your path
+
+interface FilterState {
+  showMaraudes: boolean;
+  showMerchants: boolean;
+  maraudeStatus: string;
+  merchantCategory: string;
+  radius: number;
+  selectedDays: number[]; // multi-day 1..7
+}
 
 @Component({
   selector: 'app-map-page',
@@ -34,12 +43,26 @@ export class MapPageComponent implements OnInit {
   merchantsCount = 0;
   loading = false;
 
-  currentFilters = {
+  private getTodayNumber(): number {
+    const js = new Date().getDay(); // 0..6, Sun=0
+    return js === 0 ? 7 : js;       // 1..7
+  }
+
+  private getDayNumberFromDate(d: Date | string | undefined | null): number | null {
+    if (!d) return null;
+    const date = new Date(d);
+    if (isNaN(date.getTime())) return null;
+    const js = date.getDay();
+    return js === 0 ? 7 : js;
+  }
+
+  currentFilters: FilterState = {
     showMaraudes: true,
     showMerchants: true,
     maraudeStatus: '',
     merchantCategory: '',
-    radius: 10
+    radius: 10,
+    selectedDays: [this.getTodayNumber()]
   };
 
   constructor(private apiService: ApiService) {}
@@ -94,8 +117,8 @@ export class MapPageComponent implements OnInit {
     });
   }
 
-  onFiltersChanged(filters: any) {
-    this.currentFilters = { ...filters };
+  onFiltersChanged(filters: FilterState) {
+    this.currentFilters = { ...filters, selectedDays: [...filters.selectedDays] };
     this.applyFilters();
 
     if (this.mapComponent) {
@@ -107,20 +130,39 @@ export class MapPageComponent implements OnInit {
     }
   }
 
-  private applyFilters() {
-    this.filteredMaraudes = this.allMaraudes.filter(maraude => {
-      if (this.currentFilters.maraudeStatus && maraude.status !== this.currentFilters.maraudeStatus) {
-        return false;
-      }
-      return true;
-    });
+  private matchesSelectedDays(m: MaraudeAction, selectedDays: number[]): boolean {
+    // If no day selected -> no day filtering
+    if (!selectedDays || selectedDays.length === 0) return true;
 
-    this.filteredMerchants = this.merchants.filter(merchant => {
-      if (this.currentFilters.merchantCategory && merchant.category !== this.currentFilters.merchantCategory) {
-        return false;
-      }
+    // Recurring
+    if ((m as any).isRecurring && (m as any).dayOfWeek) {
+      return selectedDays.includes((m as any).dayOfWeek);
+    }
+
+    // One-time
+    const day = this.getDayNumberFromDate((m as any).scheduledDate);
+    if (day) return selectedDays.includes(day);
+
+    // No information -> exclude
+    return false;
+  }
+
+  private applyFilters() {
+    const { maraudeStatus, merchantCategory, selectedDays, showMaraudes, showMerchants } = this.currentFilters;
+
+    // Maraudes
+    const baseMaraudes = this.allMaraudes.filter(m => {
+      if (maraudeStatus && m.status !== maraudeStatus) return false;
+      return this.matchesSelectedDays(m, selectedDays);
+    });
+    this.filteredMaraudes = showMaraudes ? baseMaraudes : [];
+
+    // Merchants
+    const baseMerchants = this.merchants.filter(merchant => {
+      if (merchantCategory && merchant.category !== merchantCategory) return false;
       return merchant.isActive;
     });
+    this.filteredMerchants = showMerchants ? baseMerchants : [];
 
     if (this.mapComponent) {
       this.mapComponent.updateMapData(
