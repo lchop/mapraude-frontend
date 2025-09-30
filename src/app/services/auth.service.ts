@@ -3,7 +3,6 @@ import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { User, LoginRequest, LoginResponse, RegisterRequest } from '../models/user.model';
-import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -16,7 +15,6 @@ export class AuthService {
   public currentUser$ = this.currentUserSubject.asObservable();
 
   constructor(private http: HttpClient) {
-    // Check for existing token on service initialization
     this.loadStoredUser();
   }
 
@@ -59,10 +57,24 @@ export class AuthService {
     return user ? ['coordinator', 'admin'].includes(user.role) : false;
   }
 
-  private setCurrentUser(user: User, token: string): void {
+  setCurrentUser(user: User, token: string): void {
     localStorage.setItem(this.tokenKey, token);
     localStorage.setItem('maraude_user', JSON.stringify(user));
     this.currentUserSubject.next(user);
+  }
+
+  // NEW METHOD: Update only the token (for refresh functionality)
+  updateToken(newToken: string): void {
+    const currentUser = this.getCurrentUser();
+    if (currentUser) {
+      localStorage.setItem(this.tokenKey, newToken);
+      // Keep the same user object, just update the token
+      this.currentUserSubject.next(currentUser);
+    }
+  }
+
+  refreshToken(): Observable<{token: string}> {
+    return this.http.post<{token: string}>(`${this.baseUrl}/refresh`, {});
   }
 
   private loadStoredUser(): void {
@@ -78,9 +90,5 @@ export class AuthService {
         this.logout();
       }
     }
-  }
-
-  refreshToken(): Observable<{token: string}> {
-    return this.http.post<{token: string}>(`${this.baseUrl}/refresh`, {});
   }
 }

@@ -1,62 +1,87 @@
-import { Injectable } from '@angular/core';
-import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent, HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+import { inject } from '@angular/core';
 import { AuthService } from '../services/auth.service';
 import { Router } from '@angular/router';
+import { catchError, switchMap, throwError, BehaviorSubject, Observable, filter, take } from 'rxjs';
 
-@Injectable()
-export class AuthInterceptor implements HttpInterceptor {
+// Create a ref for the refresh token state
+let isRefreshing = false;
+let refreshTokenSubject = new BehaviorSubject<any>(null);
 
-  constructor(
-    private authService: AuthService,
-    private router: Router
-  ) {}
+export const authInterceptor: HttpInterceptorFn = (req, next) => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
 
-  intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    console.log('🔧 Interceptor called for URL:', request.url);
-    console.log('🔧 Request method:', request.method);
+  // Skip refresh token requests to avoid infinite loops
+  if (req.url.includes('/auth/refresh')) {
+    return next(req);
+  }
 
-    // Get the auth token
-    const token = this.authService.getToken();
+  // Get the auth token
+  const token = authService.getToken();
 
-    console.log('🔧 Interceptor - Token:', token ? 'présent' : 'absent');
+  // Add token to request if it exists
+  let authReq = req;
+  if (token) {
+    authReq = addTokenHeader(req, token);
+  }
 
-    // Clone the request and add the authorization header if token exists
-    if (token) {
-      const authRequest = request.clone({
-        setHeaders: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+  return next(authReq).pipe(
+    catchError((error: HttpErrorResponse) => {
+      if (error.status === 401 && token) {
+        return handle401Error(authReq, next, authService, router);
+      }
+      return throwError(() => error);
+    })
+  );
+};
 
-      console.log('🔧 Interceptor - Authorization header added:', authRequest.headers.get('Authorization'));
-      console.log('🔧 Interceptor - All headers:', authRequest.headers.keys());
-
-      return next.handle(authRequest).pipe(
-        catchError((error: HttpErrorResponse) => {
-          console.error('🔧 Interceptor - Erreur HTTP:', error.status, error.message);
-          console.error('🔧 Interceptor - Error details:', error);
-
-          // If we get a 401 Unauthorized, logout the user
-          if (error.status === 401) {
-            console.log('🔧 Interceptor - 401 détecté, déconnexion');
-            this.authService.logout();
-            this.router.navigate(['/login']);
-          }
-          return throwError(() => error);
-        })
-      );
+function addTokenHeader(request: any, token: string): any {
+  return request.clone({
+    setHeaders: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
     }
+  });
+}
 
-    console.log('🔧 Interceptor - Pas de token, requête sans header');
+function handle401Error(
+  request: any,
+  next: any,
+  authService: AuthService,
+  router: Router
+): Observable<any> {
+  if (!isRefreshing) {
+    isRefreshing = true;
+    refreshTokenSubject.next(null);
 
-    // If no token, proceed with original request
-    return next.handle(request).pipe(
-      catchError((error: HttpErrorResponse) => {
-        console.error('🔧 Interceptor - Erreur HTTP (sans auth):', error.status, error.message);
-        return throwError(() => error);
+    return authService.refreshToken().pipe(
+      switchMap((response: any) => {
+        isRefreshing = false;
+        const newToken = response.token || response.access_token;
+        if (newToken) {
+          // Update the token in auth service
+          authService.updateToken(newToken);
+          refreshTokenSubject.next(newToken);
+          return next(addTokenHeader(request, newToken));
+        }
+        // If no new token, logout
+        authService.logout();
+        router.navigate(['/login']);
+        return throwError(() => new Error('Refresh token failed'));
+      }),
+      catchError((err) => {
+        isRefreshing = false;
+        authService.logout();
+        router.navigate(['/login']);
+        return throwError(() => err);
       })
     );
   }
+
+  return refreshTokenSubject.pipe(
+    filter(token => token !== null),
+    take(1),
+    switchMap(token => next(addTokenHeader(request, token)))
+  );
 }
