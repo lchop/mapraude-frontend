@@ -12,22 +12,30 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
+  console.log('🔄 Interceptor processing request:', req.url);
+
   // Skip refresh token requests to avoid infinite loops
   if (req.url.includes('/auth/refresh')) {
+    console.log('⏭️ Skipping auth for refresh request');
     return next(req);
   }
 
   // Get the auth token
   const token = authService.getToken();
+  console.log('🔐 Token retrieved:', token ? 'present' : 'absent');
 
   // Add token to request if it exists
   let authReq = req;
   if (token) {
     authReq = addTokenHeader(req, token);
+    console.log('✅ Token added to request headers');
+  } else {
+    console.log('❌ No token available for request');
   }
 
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
+      console.log('🚨 Interceptor error:', error.status, error.message);
       if (error.status === 401 && token) {
         return handle401Error(authReq, next, authService, router);
       }
@@ -35,6 +43,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     })
   );
 };
+
 
 function addTokenHeader(request: any, token: string): any {
   return request.clone({
