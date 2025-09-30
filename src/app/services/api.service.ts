@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, tap, catchError, throwError } from 'rxjs';
 import { Association } from '../models/association.model';
 import { MaraudeAction, DayOfWeek } from '../models/maraude.model';
 import { Merchant } from '../models/merchant.model.';
+import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root'
@@ -11,7 +12,7 @@ import { Merchant } from '../models/merchant.model.';
 export class ApiService {
   private baseUrl = '/api';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private authService: AuthService) {}
 
   // Associations (public, no auth needed - interceptor will handle)
   getAssociations(): Observable<{associations: Association[], pagination: any}> {

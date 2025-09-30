@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { BehaviorSubject, Observable, throwError } from 'rxjs';
+import { catchError, tap } from 'rxjs/operators';
 import { User, LoginRequest, LoginResponse, RegisterRequest } from '../models/user.model';
 
 @Injectable({
@@ -45,7 +45,11 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    return localStorage.getItem(this.tokenKey);
+    const token = localStorage.getItem('maraude_token');
+    console.log('🔐 Token from localStorage:', token);
+    console.log('📏 Token length:', token?.length);
+    console.log('🔍 Token starts with:', token?.substring(0, 20) + '...');
+    return token;
   }
 
   isLoggedIn(): boolean {
@@ -58,7 +62,12 @@ export class AuthService {
   }
 
   setCurrentUser(user: User, token: string): void {
-    localStorage.setItem(this.tokenKey, token);
+    console.log('💾 Storing token:', token);
+    console.log('📏 Token length:', token.length);
+
+    // Nettoyez le token si nécessaire
+    const cleanToken = token.trim();
+    localStorage.setItem(this.tokenKey, cleanToken);
     localStorage.setItem('maraude_user', JSON.stringify(user));
     this.currentUserSubject.next(user);
   }
@@ -73,8 +82,23 @@ export class AuthService {
     }
   }
 
-  refreshToken(): Observable<{token: string}> {
-    return this.http.post<{token: string}>(`${this.baseUrl}/refresh`, {});
+  refreshToken(): Observable<any> {
+    const refreshToken = localStorage.getItem('maraude_refresh_token');
+    console.log('🔄 Attempting token refresh');
+
+    return this.http.post<any>(`${this.baseUrl}/auth/refresh`, {
+      refreshToken
+    }).pipe(
+      tap(response => {
+        console.log('✅ Token refreshed successfully');
+        this.setCurrentUser(response.user, response.token);
+      }),
+      catchError(error => {
+        console.error('❌ Token refresh failed:', error);
+        this.logout();
+        return throwError(() => error);
+      })
+    );
   }
 
   private loadStoredUser(): void {
