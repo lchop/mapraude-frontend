@@ -7,6 +7,7 @@ import { MapPageComponent } from './components/pages/map/map.component';
 import { ReportFormComponent } from './components/reports/report-form/report-form.component';
 import { ReportListComponent } from './components/reports/report-list/report-list.component';
 import { AssociationsComponent } from './components/associations/associations.component';
+import { MaraudeListComponent } from './components/maraude-list/maraude-list.component';
 
 export const routes: Routes = [
   {
@@ -43,6 +44,11 @@ export const routes: Routes = [
   {
     path: 'dashboard/associations',
     component: AssociationsComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'dashboard/maraudes',
+    component: MaraudeListComponent,
     canActivate: [authGuard]
   },
   {
