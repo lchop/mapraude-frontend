@@ -46,9 +46,6 @@ export class AuthService {
 
   getToken(): string | null {
     const token = localStorage.getItem('maraude_token');
-    console.log('🔐 Token from localStorage:', token);
-    console.log('📏 Token length:', token?.length);
-    console.log('🔍 Token starts with:', token?.substring(0, 20) + '...');
     return token;
   }
 
@@ -62,9 +59,6 @@ export class AuthService {
   }
 
   setCurrentUser(user: User, token: string): void {
-    console.log('💾 Storing token:', token);
-    console.log('📏 Token length:', token.length);
-
     // Nettoyez le token si nécessaire
     const cleanToken = token.trim();
     localStorage.setItem(this.tokenKey, cleanToken);

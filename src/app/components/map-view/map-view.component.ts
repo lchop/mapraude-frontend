@@ -246,46 +246,84 @@ export class MapViewComponent implements OnInit, AfterViewInit, OnDestroy {
     return colors[colorIndex];
   }
 
-  private addMaraudeMarkers() {
-    this.maraudes.forEach(maraude => {
-      const pathColor = this.generatePathColor(maraude.id); // Use path color instead of status color
-      const icon = this.createMaraudeStartIcon(pathColor); // New method for start icon
+  // src/app/components/map-view/map-view.component.ts - SEULEMENT les waypoints modifiés
+private addMaraudeMarkers() {
+  this.maraudes.forEach(maraude => {
+    const pathColor = this.generatePathColor(maraude.id);
+    const icon = this.createMaraudeStartIcon(pathColor);
 
-      // Main marker for start position
-      const marker = L.marker([Number(maraude.startLatitude), Number(maraude.startLongitude)], { icon })
-        .bindPopup(this.createMaraudePopup(maraude));
+    // Main marker for start position
+    const marker = L.marker([Number(maraude.startLatitude), Number(maraude.startLongitude)], { icon })
+      .bindPopup(this.createMaraudePopup(maraude));
 
-      this.maraudeMarkers.addLayer(marker);
+    this.maraudeMarkers.addLayer(marker);
 
-      // Add waypoint markers if they exist
-      if (maraude.waypoints && maraude.waypoints.length > 0) {
-        maraude.waypoints.forEach((waypoint, index) => {
-          const waypointIcon = this.createWaypointIcon(index + 1, pathColor);
+    // Add waypoint markers if they exist
+    if (maraude.waypoints && maraude.waypoints.length > 0) {
+      maraude.waypoints.forEach((waypoint, index) => {
+        const waypointIcon = this.createWaypointIcon(index + 1, pathColor);
 
-          const waypointMarker = L.marker([Number(waypoint.latitude), Number(waypoint.longitude)], {
-            icon: waypointIcon
-          }).bindPopup(`
-            <div class="popup-content">
-              <h3 class="popup-title">${maraude.title} - Point ${index + 1}</h3>
-              <div class="popup-body">
-                <p class="popup-description">${waypoint.name || `Point d'étape ${index + 1}`}</p>
-                <div class="popup-details">
-                  <div class="popup-detail">
-                    <strong>📍</strong> ${waypoint.address || 'Adresse non définie'}
-                  </div>
-                  <div class="popup-detail">
-                    <strong>🎯</strong> Point ${index + 1} sur ${maraude.waypoints?.length || 0}
-                  </div>
-                </div>
-              </div>
+        const waypointMarker = L.marker([Number(waypoint.latitude), Number(waypoint.longitude)], {
+          icon: waypointIcon
+        }).bindPopup(this.createWaypointPopup(maraude, waypoint, index)); // ← SEULE modification ici
+
+        this.maraudeMarkers.addLayer(waypointMarker);
+      });
+    }
+  });
+}
+
+// Nouvelle méthode pour les popups des waypoints
+private createWaypointPopup(maraude: MaraudeAction, waypoint: any, index: number): string {
+  const statusText = this.getStatusText(maraude.status);
+  const statusColor = this.getMaraudeColor(maraude.status);
+
+  return `
+    <div class="popup-content">
+      <h3 class="popup-title">${maraude.title} - Point ${index + 1}</h3>
+      <div class="popup-status" style="background-color: ${statusColor}">
+        ${statusText}
+      </div>
+      <div class="popup-body">
+        <p class="popup-description">${waypoint.description || maraude.description || 'Aucune description disponible'}</p>
+        <div class="popup-details">
+          <div class="popup-detail">
+            <strong>📍</strong> ${waypoint.address || 'Adresse non définie'}
+          </div>
+          <div class="popup-detail">
+            <strong>🎯</strong> Point ${index + 1} sur ${maraude.waypoints?.length || 0}
+          </div>
+          ${maraude.isHappeningToday ? `
+            <div class="popup-detail">
+              <strong>📅</strong> Aujourd'hui à ${maraude.startTime}
             </div>
-          `);
+          ` : maraude.scheduledDate ? `
+            <div class="popup-detail">
+              <strong>📅</strong> ${new Date(maraude.scheduledDate).toLocaleDateString('fr-FR')} à ${maraude.startTime}
+            </div>
+          ` : ''}
+          ${maraude.endTime ? `
+            <div class="popup-detail">
+              <strong>⏰</strong> Fin prévue: ${maraude.endTime}
+            </div>
+          ` : ''}
+          <div class="popup-detail">
+            <strong>👥</strong> ${maraude.participantsCount} bénévoles
+          </div>
+          ${maraude.beneficiariesHelped > 0 ? `
+            <div class="popup-detail">
+              <strong>❤️</strong> ${maraude.beneficiariesHelped} personnes aidées
+            </div>
+          ` : ''}
+          <div class="popup-detail">
+            <strong>🏢</strong> ${maraude.association?.name || 'Association'}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
 
-          this.maraudeMarkers.addLayer(waypointMarker);
-        });
-      }
-    });
-  }
 
   private createMaraudeStartIcon(color: string): L.DivIcon {
     return L.divIcon({

@@ -85,12 +85,15 @@ export class DashboardComponent implements OnInit {
         this.apiService.getDashboardStats() // Nouvelle méthode à ajouter
       );
       this.stats = response?.stats || this.stats;
-      console.log('Stats chargées:', this.stats);
     } catch (error) {
       console.error('Erreur chargement stats:', error);
       // Fallback sur l'ancien calcul si l'endpoint échoue
       this.calculateStatsFromMaraudesAndReports();
     }
+  }
+
+  navigateToAssociations() {
+    this.router.navigate(['/dashboard/associations']);
   }
 
   private async loadMaraudes() {

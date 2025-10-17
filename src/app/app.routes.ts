@@ -6,6 +6,7 @@ import { authGuard } from './guards/auth.guard';
 import { MapPageComponent } from './components/pages/map/map.component';
 import { ReportFormComponent } from './components/reports/report-form/report-form.component';
 import { ReportListComponent } from './components/reports/report-list/report-list.component';
+import { AssociationsComponent } from './components/associations/associations.component';
 
 export const routes: Routes = [
   {
@@ -38,6 +39,11 @@ export const routes: Routes = [
     component: CreateMaraudeComponent,
     title: 'Nouvelle Maraude - Mapraude',
     canActivate: [authGuard]  // ← Protégé : seules les associations connectées peuvent créer des maraudes
+  },
+  {
+    path: 'dashboard/associations',
+    component: AssociationsComponent,
+    canActivate: [authGuard]
   },
   {
     path: 'dashboard/edit-maraude/:id',

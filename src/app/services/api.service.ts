@@ -1,7 +1,13 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, tap, catchError, throwError } from 'rxjs';
-import { Association } from '../models/association.model';
+import {
+  Association,
+  AssociationCreateUpdate,
+  AssociationStats,
+  AssociationsResponse,
+  AssociationDetailResponse
+} from '../models/association.model';
 import { MaraudeAction, DayOfWeek } from '../models/maraude.model';
 import { Merchant } from '../models/merchant.model.';
 import { AuthService } from './auth.service';
@@ -14,12 +20,140 @@ export class ApiService {
 
   constructor(private http: HttpClient, private authService: AuthService) {}
 
-  // Associations (public, no auth needed - interceptor will handle)
-  getAssociations(): Observable<{associations: Association[], pagination: any}> {
-    return this.http.get<{associations: Association[], pagination: any}>(`${this.baseUrl}/associations`);
+  // ==========================================
+  // ASSOCIATIONS
+  // ==========================================
+
+  /**
+   * Récupérer toutes les associations (avec pagination et filtres)
+   */
+  getAssociations(params?: {
+    page?: number;
+    limit?: number;
+    active?: 'true' | 'false' | 'all';
+    search?: string;
+  }): Observable<AssociationsResponse> {
+    let httpParams = new HttpParams();
+
+    if (params) {
+      if (params.page) httpParams = httpParams.set('page', params.page.toString());
+      if (params.limit) httpParams = httpParams.set('limit', params.limit.toString());
+      if (params.active) httpParams = httpParams.set('active', params.active);
+      if (params.search) httpParams = httpParams.set('search', params.search);
+    }
+
+    return this.http.get<AssociationsResponse>(`${this.baseUrl}/associations`, {
+      params: httpParams
+    }).pipe(
+      tap(response => {
+        console.log('📋 Associations loaded:', response);
+      }),
+      catchError(error => {
+        console.error('❌ Error loading associations:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
-  // Maraudes - let interceptor handle auth
+  /**
+   * Récupérer une association par ID
+   */
+  getAssociationById(id: string): Observable<AssociationDetailResponse> {
+    return this.http.get<AssociationDetailResponse>(`${this.baseUrl}/associations/${id}`).pipe(
+      tap(response => {
+        console.log('🏢 Association detail loaded:', response);
+      }),
+      catchError(error => {
+        console.error('❌ Error loading association:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Créer une nouvelle association
+   */
+  createAssociation(data: AssociationCreateUpdate): Observable<{
+    message: string;
+    association: Association
+  }> {
+    console.log('➕ Creating association:', data);
+
+    return this.http.post<{ message: string; association: Association }>(
+      `${this.baseUrl}/associations`,
+      data
+    ).pipe(
+      tap(response => {
+        console.log('✅ Association created:', response);
+      }),
+      catchError(error => {
+        console.error('❌ Error creating association:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Mettre à jour une association
+   */
+  updateAssociation(id: string, data: Partial<AssociationCreateUpdate>): Observable<{
+    message: string;
+    association: Association
+  }> {
+    console.log('🔄 Updating association:', id, data);
+
+    return this.http.put<{ message: string; association: Association }>(
+      `${this.baseUrl}/associations/${id}`,
+      data
+    ).pipe(
+      tap(response => {
+        console.log('✅ Association updated:', response);
+      }),
+      catchError(error => {
+        console.error('❌ Error updating association:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Supprimer une association
+   */
+  deleteAssociation(id: string): Observable<{ message: string }> {
+    console.log('🗑️ Deleting association:', id);
+
+    return this.http.delete<{ message: string }>(`${this.baseUrl}/associations/${id}`).pipe(
+      tap(response => {
+        console.log('✅ Association deleted:', response);
+      }),
+      catchError(error => {
+        console.error('❌ Error deleting association:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Récupérer les statistiques d'une association
+   */
+  getAssociationStats(id: string): Observable<{ stats: AssociationStats }> {
+    return this.http.get<{ stats: AssociationStats }>(
+      `${this.baseUrl}/associations/${id}/stats`
+    ).pipe(
+      tap(response => {
+        console.log('📊 Association stats loaded:', response);
+      }),
+      catchError(error => {
+        console.error('❌ Error loading association stats:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // ==========================================
+  // MARAUDES
+  // ==========================================
+
   getMaraudes(params?: any): Observable<{actions: MaraudeAction[], pagination: any}> {
     let url = `${this.baseUrl}/maraudes`;
     let httpParams = new HttpParams();
@@ -88,7 +222,10 @@ export class ApiService {
     );
   }
 
-  // Public endpoints (no auth needed)
+  // ==========================================
+  // MARAUDES - Public endpoints
+  // ==========================================
+
   getTodayActiveMaraudes(): Observable<{
     actions: MaraudeAction[],
     count: number,
@@ -114,6 +251,10 @@ export class ApiService {
       days: DayOfWeek[]
     }>(`${this.baseUrl}/maraudes/weekly-schedule`);
   }
+
+  // ==========================================
+  // MERCHANTS
+  // ==========================================
 
   getMerchants(params?: any): Observable<{merchants: Merchant[], pagination: any}> {
     let url = `${this.baseUrl}/merchants`;
@@ -146,6 +287,10 @@ export class ApiService {
       count: number
     }>(`${this.baseUrl}/merchants/nearby/${lat}/${lng}?radius=${radius}`);
   }
+
+  // ==========================================
+  // DASHBOARD / REPORTS
+  // ==========================================
 
   getDashboardStats(): Observable<any> {
     return this.http.get<any>(`${this.baseUrl}/reports/dashboard/stats`).pipe(

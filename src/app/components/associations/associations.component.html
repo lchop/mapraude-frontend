@@ -1,0 +1,368 @@
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="flex justify-between items-center">
+      <div>
+        <h2 class="text-3xl font-bold text-gray-900">Gestion des Associations</h2>
+        <p class="text-gray-600 mt-1">Gérez toutes les associations de la plateforme</p>
+      </div>
+      <button
+        (click)="openCreateModal()"
+        class="btn btn-primary flex items-center">
+        <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+        </svg>
+        Créer une association
+      </button>
+    </div>
+  </div>
+
+  <!-- Filtres -->
+  <div class="bg-white shadow rounded-lg p-6 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <!-- Recherche -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Rechercher</label>
+        <input
+          type="text"
+          [(ngModel)]="searchQuery"
+          (input)="onSearchChange()"
+          placeholder="Nom, email, adresse..."
+          class="input-field">
+      </div>
+
+      <!-- Filtre statut -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Statut</label>
+        <select
+          [(ngModel)]="filterActive"
+          (change)="onFilterChange()"
+          class="input-field">
+          <option value="all">Toutes</option>
+          <option value="true">Actives</option>
+          <option value="false">Inactives</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center py-12">
+    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    <p class="mt-4 text-gray-600">Chargement...</p>
+  </div>
+
+  <!-- Liste des associations -->
+  <div *ngIf="!loading">
+
+    <!-- Résumé -->
+    <div class="mb-4 text-sm text-gray-600">
+      {{ filteredAssociations.length }} association(s) affichée(s) sur {{ totalAssociations }} au total
+    </div>
+
+    <!-- Tableau -->
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Association
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Contact
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Localisation
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Statut
+            </th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Actions
+            </th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          <tr *ngFor="let association of filteredAssociations" class="hover:bg-gray-50">
+
+            <!-- Association -->
+            <td class="px-6 py-4">
+              <div class="flex items-center">
+                <div>
+                  <div class="text-sm font-medium text-gray-900">
+                    {{ association.name }}
+                  </div>
+                  <div class="text-sm text-gray-500" *ngIf="association.description">
+                    {{ association.description | slice:0:50 }}{{ association.description.length > 50 ? '...' : '' }}
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <!-- Contact -->
+            <td class="px-6 py-4">
+              <div class="text-sm text-gray-900">{{ association.email }}</div>
+              <div class="text-sm text-gray-500" *ngIf="association.phone">
+                {{ association.phone }}
+              </div>
+              <a *ngIf="association.website"
+                 [href]="association.website"
+                 target="_blank"
+                 class="text-sm text-blue-600 hover:text-blue-500">
+                Site web ↗
+              </a>
+            </td>
+
+            <!-- Localisation -->
+            <td class="px-6 py-4">
+              <div class="text-sm text-gray-900">
+                {{ association.address || 'Non renseignée' }}
+              </div>
+            </td>
+
+            <!-- Statut -->
+            <td class="px-6 py-4">
+              <span
+                [class]="association.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
+                {{ association.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+
+            <!-- Actions -->
+            <td class="px-6 py-4 text-right text-sm font-medium">
+              <button
+                (click)="viewDetails(association.id)"
+                class="text-blue-600 hover:text-blue-900 mr-3"
+                title="Voir détails">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                </svg>
+              </button>
+              <button
+                (click)="openEditModal(association)"
+                class="text-indigo-600 hover:text-indigo-900 mr-3"
+                title="Modifier">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+              </button>
+              <button
+                (click)="toggleActiveStatus(association)"
+                [class]="association.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'"
+                [title]="association.isActive ? 'Désactiver' : 'Activer'">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                </svg>
+              </button>
+            </td>
+          </tr>
+
+          <!-- Empty state -->
+          <tr *ngIf="filteredAssociations.length === 0">
+            <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+              <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+              </svg>
+              Aucune association trouvée
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div *ngIf="totalPages > 1" class="mt-6 flex items-center justify-between">
+      <div class="text-sm text-gray-700">
+        Page {{ currentPage }} sur {{ totalPages }}
+      </div>
+      <div class="flex space-x-2">
+        <button
+          (click)="goToPage(currentPage - 1)"
+          [disabled]="currentPage === 1"
+          class="px-3 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50">
+          Précédent
+        </button>
+        <button
+          *ngFor="let page of paginationPages"
+          (click)="goToPage(page)"
+          [class.bg-blue-600]="page === currentPage"
+          [class.text-white]="page === currentPage"
+          [class.hover:bg-gray-50]="page !== currentPage"
+          class="px-3 py-2 border rounded-md">
+          {{ page }}
+        </button>
+        <button
+          (click)="goToPage(currentPage + 1)"
+          [disabled]="currentPage === totalPages"
+          class="px-3 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50">
+          Suivant
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL CRÉATION/ÉDITION -->
+<div *ngIf="showModal" class="fixed z-10 inset-0 overflow-y-auto">
+  <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+
+    <!-- Overlay -->
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" (click)="closeModal()"></div>
+
+    <!-- Modal -->
+    <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+
+      <!-- Header -->
+      <div class="bg-white px-6 pt-5 pb-4">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg leading-6 font-medium text-gray-900">
+            {{ editingAssociation ? 'Modifier l\'association' : 'Créer une association' }}
+          </h3>
+          <button (click)="closeModal()" class="text-gray-400 hover:text-gray-500">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Form -->
+      <form (ngSubmit)="onSubmit()" class="px-6 pb-6">
+
+        <!-- Error général -->
+        <div *ngIf="submitError" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <p class="text-sm text-red-800">{{ submitError }}</p>
+        </div>
+
+        <div class="space-y-4">
+
+          <!-- Nom -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Nom de l'association *
+            </label>
+            <input
+              type="text"
+              [(ngModel)]="formData.name"
+              name="name"
+              required
+              class="input-field"
+              [class.border-red-500]="formErrors['name']">
+            <p *ngIf="formErrors['name']" class="mt-1 text-sm text-red-600">
+              {{ formErrors['name'] }}
+            </p>
+          </div>
+
+          <!-- Email -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Email *
+            </label>
+            <input
+              type="email"
+              [(ngModel)]="formData.email"
+              name="email"
+              required
+              class="input-field"
+              [class.border-red-500]="formErrors['email']">
+            <p *ngIf="formErrors['email']" class="mt-1 text-sm text-red-600">
+              {{ formErrors['email'] }}
+            </p>
+          </div>
+
+          <!-- Description -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Description
+            </label>
+            <textarea
+              [(ngModel)]="formData.description"
+              name="description"
+              rows="3"
+              class="input-field"
+              placeholder="Décrivez l'association..."></textarea>
+          </div>
+
+          <!-- Téléphone -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Téléphone
+            </label>
+            <input
+              type="tel"
+              [(ngModel)]="formData.phone"
+              name="phone"
+              class="input-field"
+              [class.border-red-500]="formErrors['phone']">
+            <p *ngIf="formErrors['phone']" class="mt-1 text-sm text-red-600">
+              {{ formErrors['phone'] }}
+            </p>
+          </div>
+
+          <!-- Adresse -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Adresse
+            </label>
+            <textarea
+              [(ngModel)]="formData.address"
+              name="address"
+              rows="2"
+              class="input-field"
+              placeholder="Adresse complète..."></textarea>
+          </div>
+
+          <!-- Site web -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Site web
+            </label>
+            <input
+              type="url"
+              [(ngModel)]="formData.website"
+              name="website"
+              class="input-field"
+              placeholder="https://..."
+              [class.border-red-500]="formErrors['website']">
+            <p *ngIf="formErrors['website']" class="mt-1 text-sm text-red-600">
+              {{ formErrors['website'] }}
+            </p>
+          </div>
+
+          <!-- Statut (admin seulement) -->
+          <div *ngIf="isAdmin && editingAssociation">
+            <label class="flex items-center">
+              <input
+                type="checkbox"
+                [(ngModel)]="formData.isActive"
+                name="isActive"
+                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+              <span class="ml-2 text-sm text-gray-700">Association active</span>
+            </label>
+          </div>
+
+        </div>
+
+        <!-- Actions -->
+        <div class="mt-6 flex justify-end space-x-3">
+          <button
+            type="button"
+            (click)="closeModal()"
+            class="btn btn-secondary">
+            Annuler
+          </button>
+          <button
+            type="submit"
+            class="btn btn-primary">
+            {{ editingAssociation ? 'Mettre à jour' : 'Créer' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
