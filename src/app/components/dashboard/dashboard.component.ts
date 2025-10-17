@@ -45,6 +45,7 @@ export class DashboardComponent implements OnInit {
     totalVolunteers: 0
   };
   loading = true;
+  isAdmin = false; // NEW
 
   constructor(
     private authService: AuthService,
@@ -61,13 +62,17 @@ export class DashboardComponent implements OnInit {
       return;
     }
 
+    // NEW: Detect if user is admin
+    this.isAdmin = this.currentUser.role === 'admin';
+    console.log('👤 User role:', this.currentUser.role, '| Is admin:', this.isAdmin);
+
     this.loadDashboardData();
   }
 
   loadDashboardData() {
     // Charger les données en parallèle
     Promise.all([
-      this.loadStats(), // NOUVEAU : utilise l'endpoint dédié
+      this.loadStats(),
       this.loadMaraudes(),
       this.loadReports()
     ]).then(() => {
@@ -78,13 +83,14 @@ export class DashboardComponent implements OnInit {
     });
   }
 
-  // NOUVEAU : Charger les vraies statistiques depuis l'endpoint dédié
+  // Charger les vraies statistiques depuis l'endpoint dédié
   private async loadStats() {
     try {
       const response = await firstValueFrom(
-        this.apiService.getDashboardStats() // Nouvelle méthode à ajouter
+        this.apiService.getDashboardStats()
       );
       this.stats = response?.stats || this.stats;
+      console.log('📊 Stats loaded:', this.stats);
     } catch (error) {
       console.error('Erreur chargement stats:', error);
       // Fallback sur l'ancien calcul si l'endpoint échoue
@@ -92,17 +98,32 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-  navigateToAssociations() {
-    this.router.navigate(['/dashboard/associations']);
-  }
-
+  // NEW: Modified to load all maraudes for admin
   private async loadMaraudes() {
     try {
-      const response = await firstValueFrom(this.apiService.getMaraudes({
-        associationId: this.currentUser?.associationId,
+      const params: any = {
         limit: 100
-      }));
+      };
+
+      // Non-admin users: filter by their association
+      if (!this.isAdmin && this.currentUser?.associationId) {
+        params.associationId = this.currentUser.associationId;
+        console.log('👤 Loading maraudes for association:', params.associationId);
+      } else if (this.isAdmin) {
+        console.log('🔑 Admin: Loading ALL maraudes');
+        // Admin: no filter = all maraudes
+      }
+
+      const response = await firstValueFrom(this.apiService.getMaraudes(params));
       this.myMaraudes = response?.actions || [];
+
+      console.log(`✅ Loaded ${this.myMaraudes.length} maraudes`);
+
+      // Log associations if admin
+      if (this.isAdmin && this.myMaraudes.length > 0) {
+        const associations = [...new Set(this.myMaraudes.map(m => m.association?.name))];
+        console.log('📋 Associations in maraudes:', associations);
+      }
     } catch (error) {
       console.error('Erreur chargement maraudes:', error);
       this.myMaraudes = [];
@@ -111,10 +132,19 @@ export class DashboardComponent implements OnInit {
 
   private async loadReports() {
     try {
-      const response = await firstValueFrom(this.reportService.getReports({
+      const params: any = {
         limit: 10
-      }));
+      };
+
+      // Non-admin: filter by association
+      if (!this.isAdmin && this.currentUser?.associationId) {
+        params.associationId = this.currentUser.associationId;
+      }
+
+      const response = await firstValueFrom(this.reportService.getReports(params));
       this.recentReports = response?.reports || [];
+
+      console.log(`✅ Loaded ${this.recentReports.length} reports`);
     } catch (error) {
       console.error('Erreur chargement rapports:', error);
       this.recentReports = [];
@@ -123,9 +153,9 @@ export class DashboardComponent implements OnInit {
 
   // BACKUP : Calcul local si l'endpoint stats n'est pas disponible
   private calculateStatsFromMaraudesAndReports() {
-    console.log('Fallback: calcul des stats localement');
+    console.log('⚠️ Fallback: calcul des stats localement');
 
-    // Stats maraudes (garde l'ancien calcul)
+    // Stats maraudes
     this.stats.totalMaraudes = this.myMaraudes.length;
     this.stats.activeMaraudes = this.myMaraudes.filter(m =>
       m.status === 'planned' || m.status === 'in_progress'
@@ -134,7 +164,7 @@ export class DashboardComponent implements OnInit {
       m.status === 'completed'
     ).length;
 
-    // Stats rapports (calcul depuis les rapports chargés)
+    // Stats rapports
     this.stats.totalReports = this.recentReports.length;
     this.stats.totalBeneficiaries = this.recentReports.reduce((sum, report) =>
       sum + (report.beneficiariesCount || 0), 0
@@ -148,6 +178,13 @@ export class DashboardComponent implements OnInit {
     this.stats.pendingReports = this.recentReports.filter(r =>
       r.status === 'submitted'
     ).length;
+
+    // Calculate average
+    if (this.stats.totalReports > 0) {
+      this.stats.avgBeneficiariesPerReport = Math.round(
+        this.stats.totalBeneficiaries / this.stats.totalReports
+      );
+    }
   }
 
   logout() {
@@ -178,6 +215,15 @@ export class DashboardComponent implements OnInit {
 
   navigateToViewReport(reportId: string) {
     this.router.navigate(['/reports', reportId]);
+  }
+
+  navigateToAssociations() {
+    this.router.navigate(['/dashboard/associations']);
+  }
+
+  // NEW: Navigate to all maraudes view
+  navigateToAllMaraudes() {
+    this.router.navigate(['/dashboard/maraudes']);
   }
 
   // ===== HELPERS =====

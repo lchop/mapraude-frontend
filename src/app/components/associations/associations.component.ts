@@ -211,6 +211,11 @@ export class AssociationsComponent implements OnInit {
   return isValid;
 }
 
+goBack() {
+    this.router.navigate(['/dashboard']);
+
+}
+
 async submitForm() {
   if (!this.validateForm()) {
     return;

@@ -7,6 +7,7 @@ import { AuthService } from '../../services/auth.service';
 import { ApiService } from '../../services/api.service';
 import { User } from '../../models/user.model';
 import { MaraudeAction } from '../../models/maraude.model';
+import { Association } from '../../models/association.model';
 
 // Waypoint interface
 interface Waypoint {
@@ -36,6 +37,11 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
   deleting = false;
   error = '';
 
+  // Admin-specific: association selection
+  isAdmin = false;
+  associations: Association[] = [];
+  loadingAssociations = false;
+
   // Map and waypoint management
   map: any = null;
   markers: any[] = [];
@@ -59,7 +65,8 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
     startTime: '',
     endTime: '',
     participantsCount: 0,
-    notes: ''
+    notes: '',
+    associationId: '' // NEW: For admin to select association
   };
 
   daysOfWeek = [
@@ -98,12 +105,23 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
     return (Leaflet as any).default ?? Leaflet;
   }
 
-  ngOnInit() {
+  async ngOnInit() {
     this.currentUser = this.authService.getCurrentUser();
 
     if (!this.currentUser) {
       this.router.navigate(['/login']);
       return;
+    }
+
+    // Check if user is admin
+    this.isAdmin = this.currentUser.role === 'admin';
+
+    // Load associations for admin
+    if (this.isAdmin) {
+      await this.loadAssociations();
+    } else {
+      // For non-admin, use their association
+      this.maraudeData.associationId = this.currentUser.associationId || '';
     }
 
     this.route.params.subscribe(params => {
@@ -116,10 +134,30 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit() {
-    // Add a small delay to ensure the view is fully rendered
     setTimeout(() => {
       this.loadMap();
     }, 100);
+  }
+
+  // NEW: Load associations for admin
+  async loadAssociations() {
+    this.loadingAssociations = true;
+    try {
+      const response = await firstValueFrom(
+        this.apiService.getAssociations({ active: 'true', limit: 100 })
+      );
+      this.associations = response.associations;
+
+      // Set default association if only one
+      if (this.associations.length === 1 && !this.isEditing) {
+        this.maraudeData.associationId = this.associations[0].id;
+      }
+    } catch (error) {
+      console.error('Error loading associations:', error);
+      this.error = 'Erreur lors du chargement des associations';
+    } finally {
+      this.loadingAssociations = false;
+    }
   }
 
   async loadMap() {
@@ -213,7 +251,8 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
         startTime: maraude.startTime || '',
         endTime: maraude.endTime || '',
         participantsCount: maraude.participantsCount || 0,
-        notes: maraude.notes || ''
+        notes: maraude.notes || '',
+        associationId: maraude.associationId // NEW: Load association
       };
 
       // Update map if it's ready
@@ -271,7 +310,7 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
   // Waypoint management methods
   addWaypoint(lat: number, lng: number, address?: string, name?: string) {
     const newWaypoint: Waypoint = {
-      id: Date.now().toString(), // Simple ID generation
+      id: Date.now().toString(),
       latitude: lat,
       longitude: lng,
       address: address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
@@ -518,7 +557,7 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
     }
   }
 
-  // Submit method with proper waypoint serialization
+  // UPDATED: Submit method with admin association support
   async onSubmit() {
     if (!this.validateForm()) return;
 
@@ -536,7 +575,7 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
         order: wp.order
       }));
 
-      const maraudePayload = {
+      const maraudePayload: any = {
         title: this.maraudeData.title,
         startLatitude: this.maraudeData.startLatitude,
         startLongitude: this.maraudeData.startLongitude,
@@ -558,6 +597,13 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
         address: this.maraudeData.startAddress
       };
 
+      // NEW: Include associationId for admin
+      if (this.isAdmin && this.maraudeData.associationId) {
+        maraudePayload.associationId = this.maraudeData.associationId;
+      }
+
+      console.log('📤 Submitting maraude with payload:', maraudePayload);
+
       if (this.isEditing && this.maraudeId) {
         await firstValueFrom(this.apiService.updateMaraude(this.maraudeId, maraudePayload));
       } else {
@@ -567,12 +613,13 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
       this.router.navigate(['/dashboard']);
     } catch (error: any) {
       console.error('Erreur lors de la sauvegarde:', error);
-      this.error = error.error?.error || 'Erreur lors de la sauvegarde';
+      this.error = error.error?.error || error.error?.message || 'Erreur lors de la sauvegarde';
     } finally {
       this.saving = false;
     }
   }
 
+  // UPDATED: Validation with admin association check
   validateForm(): boolean {
     this.error = '';
 
@@ -583,6 +630,12 @@ export class CreateMaraudeComponent implements OnInit, AfterViewInit {
 
     if (!this.maraudeData.startTime) {
       this.error = 'L\'heure de début est requise';
+      return false;
+    }
+
+    // NEW: Admin must select association
+    if (this.isAdmin && !this.maraudeData.associationId) {
+      this.error = 'Veuillez sélectionner une association';
       return false;
     }
 
